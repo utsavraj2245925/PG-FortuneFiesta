@@ -14,6 +14,12 @@ const gameStateSchema = new mongoose.Schema({
     2: { start: { type: Number }, end: { type: Number } },
     3: { start: { type: Number }, end: { type: Number } },
   },
+  // Guest Round State
+  guestStatus: { type: String, default: 'idle', enum: ['idle', 'spinning', 'revealed'] },
+  guestWinner: { type: mongoose.Schema.Types.ObjectId, ref: 'Guest', default: null },
+  guestPrize: { type: mongoose.Schema.Types.ObjectId, ref: 'Prize', default: null },
+  // Fiesta Winners Grand Display
+  showFiestaWinners: { type: Boolean, default: false },
 }, { timestamps: true });
 
 module.exports = mongoose.model('GameState', gameStateSchema);

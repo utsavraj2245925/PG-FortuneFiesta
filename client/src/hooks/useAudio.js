@@ -116,3 +116,432 @@ export function playSuspense() {
     osc.start(ac.currentTime); osc.stop(ac.currentTime + 3.6);
   } catch {}
 }
+
+// ── GLOBAL AUDIO REGISTRY & MUTE STATE ──
+let isGlobalMuted = false;
+const activeAudios = new Set();
+
+export function setAudioMuted(muted) {
+  isGlobalMuted = Boolean(muted);
+  if (isGlobalMuted) {
+    stopAllAudio();
+  }
+}
+
+export function isAudioMuted() {
+  return isGlobalMuted;
+}
+
+function safeStopAudio(audio) {
+  if (!audio) return;
+  try {
+    audio.pause();
+    audio.currentTime = 0;
+    audio.volume = 0;
+    audio.src = '';
+    audio.load();
+  } catch {}
+}
+
+// ── EMP SONG AUDIO FOR EMPLOYEE LUCKY DRAW ──
+let empSongAudio = null;
+
+export function preloadEmpSounds() {
+  try {
+    if (!empSongAudio) {
+      empSongAudio = new Audio('/emp_song.mp3');
+      empSongAudio.preload = 'auto';
+      empSongAudio.load();
+    }
+    if (!winnerExplosionAudio) {
+      winnerExplosionAudio = new Audio('/winner_explosion.aac');
+      winnerExplosionAudio.preload = 'auto';
+      winnerExplosionAudio.load();
+    }
+  } catch {}
+}
+
+export function playEmpSong() {
+  if (isGlobalMuted) return;
+  try {
+    resumeAudio();
+    stopAllAudio();
+    empSongAudio = new Audio('/emp_song.mp3');
+    empSongAudio.loop = true;
+    empSongAudio.volume = 0.95;
+    activeAudios.add(empSongAudio);
+
+    const playPromise = empSongAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        try {
+          if (isGlobalMuted) return;
+          const fallback = new Audio('/emp_song.mpeg');
+          fallback.loop = true;
+          fallback.volume = 0.95;
+          activeAudios.add(fallback);
+          fallback.play().catch(() => {});
+          empSongAudio = fallback;
+        } catch {}
+      });
+    }
+  } catch (err) {
+    console.warn('Error playing EMP song:', err);
+  }
+}
+
+export function stopEmpSong() {
+  safeStopAudio(empSongAudio);
+  empSongAudio = null;
+}
+
+// ── HALL OF FAME SONG FOR FIESTA WINNERS SCREEN ──
+let hallOfFameAudio = null;
+
+export function preloadHallOfFameSound() {
+  try {
+    if (!hallOfFameAudio) {
+      hallOfFameAudio = new Audio('/hall_of_fame.mp3');
+      hallOfFameAudio.preload = 'auto';
+      hallOfFameAudio.load();
+    }
+  } catch {}
+}
+
+export function playHallOfFameSong() {
+  if (isGlobalMuted) return;
+  try {
+    resumeAudio();
+    stopAllAudio();
+    hallOfFameAudio = new Audio('/hall_of_fame.mp3');
+    hallOfFameAudio.loop = true;
+    hallOfFameAudio.volume = 0.95;
+    activeAudios.add(hallOfFameAudio);
+
+    const playPromise = hallOfFameAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        try {
+          if (isGlobalMuted) return;
+          const fallback = new Audio('/hall_of_fame.mpeg');
+          fallback.loop = true;
+          fallback.volume = 0.95;
+          activeAudios.add(fallback);
+          fallback.play().catch(() => {});
+          hallOfFameAudio = fallback;
+        } catch {}
+      });
+    }
+  } catch (err) {
+    console.warn('Error playing Hall of Fame song:', err);
+  }
+}
+
+export function stopHallOfFameSong() {
+  safeStopAudio(hallOfFameAudio);
+  hallOfFameAudio = null;
+}
+
+// ── SQUID GAME, COUNTDOWN BEEP & EXPLOSION AUDIO FOR VIP GUEST ROULETTE ──
+let squidGameAudio = null;
+let countdownBeepAudio = null;
+let winnerExplosionAudio = null;
+
+export function playSquidGameSound() {
+  if (isGlobalMuted) return;
+  try {
+    resumeAudio();
+    stopAllAudio();
+    squidGameAudio = new Audio('/squid_game_sound.mp3');
+    squidGameAudio.loop = true;
+    squidGameAudio.volume = 0.9;
+    activeAudios.add(squidGameAudio);
+
+    const playPromise = squidGameAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(err => {
+        console.warn('Squid game audio play prevented:', err);
+      });
+    }
+  } catch (err) {
+    console.warn('Error playing squid game audio:', err);
+  }
+}
+
+export function stopSquidGameSound() {
+  safeStopAudio(squidGameAudio);
+  squidGameAudio = null;
+}
+
+export function playGuestCountdownBeep() {
+  if (isGlobalMuted) return;
+  try {
+    resumeAudio();
+    safeStopAudio(squidGameAudio);
+    squidGameAudio = null;
+
+    countdownBeepAudio = new Audio('/guest_countdown_beep.aac');
+    countdownBeepAudio.volume = 1.0;
+    activeAudios.add(countdownBeepAudio);
+
+    const playPromise = countdownBeepAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        try {
+          if (isGlobalMuted) return;
+          const fallback = new Audio('/guest_countdown_beep.mp3');
+          fallback.volume = 1.0;
+          activeAudios.add(fallback);
+          fallback.play().catch(() => {});
+          countdownBeepAudio = fallback;
+        } catch {}
+      });
+    }
+  } catch (err) {
+    console.warn('Error playing countdown beep:', err);
+  }
+}
+
+export function stopGuestCountdownBeep() {
+  safeStopAudio(countdownBeepAudio);
+  countdownBeepAudio = null;
+}
+
+export function preloadGuestSounds() {
+  try {
+    if (!countdownBeepAudio) {
+      countdownBeepAudio = new Audio('/guest_countdown_beep.aac');
+      countdownBeepAudio.load();
+    }
+    if (!winnerExplosionAudio) {
+      winnerExplosionAudio = new Audio('/winner_explosion.aac');
+      winnerExplosionAudio.load();
+    }
+  } catch {}
+}
+
+export function playSynthesizedExplosionBoom() {
+  try {
+    resumeAudio();
+    const ac = getCtx();
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain);
+    gain.connect(ac.destination);
+
+    // Deep thunderous sub-bass explosion punch
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(140, ac.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(25, ac.currentTime + 1.4);
+
+    gain.gain.setValueAtTime(0.75, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 1.8);
+
+    osc.start(ac.currentTime);
+    osc.stop(ac.currentTime + 1.9);
+  } catch {}
+}
+
+export function playTripleWinnerExplosion(onEnded) {
+  if (isGlobalMuted) {
+    if (onEnded) onEnded();
+    return;
+  }
+  try {
+    resumeAudio();
+    stopAllAudio();
+
+    // 1st explosion blast
+    playWinnerExplosion();
+
+    // 2nd explosion blast (continuous cadence at 450ms)
+    setTimeout(() => {
+      if (isGlobalMuted) return;
+      try {
+        playSynthesizedExplosionBoom();
+        const a2 = new Audio('/winner_explosion.aac');
+        a2.volume = 1.0;
+        activeAudios.add(a2);
+        a2.play().catch(() => {
+          try {
+            if (isGlobalMuted) return;
+            const f2 = new Audio('/winner_explosion.mp3');
+            activeAudios.add(f2);
+            f2.play().catch(() => {});
+          } catch {}
+        });
+      } catch {}
+    }, 450);
+
+    // 3rd explosion blast (continuous cadence at 950ms)
+    setTimeout(() => {
+      if (isGlobalMuted) {
+        if (onEnded) onEnded();
+        return;
+      }
+      try {
+        playSynthesizedExplosionBoom();
+        const a3 = new Audio('/winner_explosion.aac');
+        a3.volume = 1.0;
+        activeAudios.add(a3);
+        a3.onended = () => {
+          stopAllAudio();
+          if (onEnded) onEnded();
+        };
+        a3.play().catch(() => {
+          try {
+            if (isGlobalMuted) {
+              if (onEnded) onEnded();
+              return;
+            }
+            const fallback3 = new Audio('/winner_explosion.mp3');
+            activeAudios.add(fallback3);
+            fallback3.onended = () => { stopAllAudio(); if (onEnded) onEnded(); };
+            fallback3.play().catch(() => { if (onEnded) onEnded(); });
+          } catch {
+            if (onEnded) onEnded();
+          }
+        });
+      } catch {
+        if (onEnded) onEnded();
+      }
+    }, 950);
+  } catch (err) {
+    console.warn('Error in playTripleWinnerExplosion:', err);
+    if (onEnded) onEnded();
+  }
+}
+
+export function playWinnerExplosion(onEnded) {
+  if (isGlobalMuted) {
+    if (onEnded) onEnded();
+    return;
+  }
+  try {
+    resumeAudio();
+    stopAllAudio();
+
+    // Instant acoustic explosion punch
+    playSynthesizedExplosionBoom();
+
+    winnerExplosionAudio = new Audio('/winner_explosion.aac');
+    winnerExplosionAudio.currentTime = 0;
+    winnerExplosionAudio.volume = 1.0;
+    activeAudios.add(winnerExplosionAudio);
+
+    winnerExplosionAudio.onended = () => {
+      stopAllAudio();
+      if (onEnded) onEnded();
+    };
+
+    const playPromise = winnerExplosionAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        try {
+          if (isGlobalMuted) {
+            if (onEnded) onEnded();
+            return;
+          }
+          const fallback = new Audio('/winner_explosion.mp3');
+          fallback.currentTime = 0;
+          fallback.volume = 1.0;
+          activeAudios.add(fallback);
+          fallback.onended = () => {
+            stopAllAudio();
+            if (onEnded) onEnded();
+          };
+          fallback.play().catch(() => {});
+          winnerExplosionAudio = fallback;
+        } catch {
+          if (onEnded) onEnded();
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Error playing winner explosion audio:', err);
+    if (onEnded) onEnded();
+  }
+}
+
+export function stopWinnerExplosion() {
+  safeStopAudio(winnerExplosionAudio);
+  winnerExplosionAudio = null;
+}
+
+export function stopAllAudio() {
+  safeStopAudio(empSongAudio);
+  empSongAudio = null;
+
+  safeStopAudio(hallOfFameAudio);
+  hallOfFameAudio = null;
+
+  safeStopAudio(squidGameAudio);
+  squidGameAudio = null;
+
+  safeStopAudio(countdownBeepAudio);
+  countdownBeepAudio = null;
+
+  safeStopAudio(winnerExplosionAudio);
+  winnerExplosionAudio = null;
+
+  activeAudios.forEach(a => {
+    safeStopAudio(a);
+  });
+  activeAudios.clear();
+}
+
+export function stopAllGuestAudio() {
+  stopAllAudio();
+}
+
+export function playClockTick(countdownValue) {
+  try {
+    resumeAudio();
+    const ac = getCtx();
+    
+    // Crisp grandfather clock / metallic countdown pulse
+    const osc1 = ac.createOscillator();
+    const osc2 = ac.createOscillator();
+    const gainNode = ac.createGain();
+
+    osc1.connect(gainNode);
+    osc2.connect(gainNode);
+    gainNode.connect(ac.destination);
+
+    // Dynamic pitch escalation from 5 down to 0
+    const baseFreq = countdownValue === 0 ? 880 : 380 + (5 - countdownValue) * 75;
+    osc1.type = 'sine';
+    osc2.type = 'triangle';
+
+    osc1.frequency.setValueAtTime(baseFreq, ac.currentTime);
+    osc2.frequency.setValueAtTime(baseFreq * 1.5, ac.currentTime);
+
+    // Mechanical click envelope
+    gainNode.gain.setValueAtTime(0, ac.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.4, ac.currentTime + 0.015);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.22);
+
+    osc1.start(ac.currentTime);
+    osc2.start(ac.currentTime);
+    osc1.stop(ac.currentTime + 0.23);
+    osc2.stop(ac.currentTime + 0.23);
+  } catch {}
+}
+
+export function playRouletteBallClick() {
+  try {
+    const ac = getCtx();
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.type = 'sine';
+    const freq = 1200 + Math.random() * 400;
+    osc.frequency.setValueAtTime(freq, ac.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(300, ac.currentTime + 0.04);
+    gain.gain.setValueAtTime(0.2, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.04);
+    osc.start(ac.currentTime);
+    osc.stop(ac.currentTime + 0.05);
+  } catch {}
+}

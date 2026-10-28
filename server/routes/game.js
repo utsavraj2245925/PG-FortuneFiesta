@@ -6,6 +6,7 @@ const Winner     = require('../models/Winner');
 const Prize      = require('../models/Prize');
 const DrawConfig = require('../models/DrawConfig');
 const Employee   = require('../models/Employee');
+const Guest      = require('../models/Guest');
 
 function groupForRound(round) {
   if (round <= 3) return 1;
@@ -283,7 +284,7 @@ router.post('/reset', auth, async (req, res) => {
     await Employee.updateMany({}, { hasWon: false });
     await GameState.findOneAndUpdate(
       { singleton: 'state' },
-      { currentRound: 1, status: 'idle', isActive: false },
+      { currentRound: 1, status: 'idle', isActive: false, showFiestaWinners: false },
       { upsert: true }
     );
     if (io) io.emit('game:reset');
@@ -291,10 +292,72 @@ router.post('/reset', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
+// POST /show-fiesta-winners — toggle or set live screen display of Fiesta Winners list
+router.post('/show-fiesta-winners', auth, async (req, res) => {
+  try {
+    const io = req.app.get('io');
+    const { show } = req.body;
+    const state = await GameState.findOne({ singleton: 'state' });
+    const targetShow = (typeof show === 'boolean') ? show : !(state?.showFiestaWinners);
+
+    const updated = await GameState.findOneAndUpdate(
+      { singleton: 'state' },
+      { showFiestaWinners: targetShow },
+      { new: true, upsert: true }
+    ).populate('guestWinner').populate('guestPrize');
+
+    const winners = await Winner.find().populate('prize').populate('employee').sort({ roundNo: 1 });
+    let guestWinner = updated.guestWinner;
+    let guestPrize = updated.guestPrize;
+    if (!guestWinner) {
+      guestWinner = await Guest.findOne({ won: true }).populate('prize');
+      if (guestWinner) guestPrize = guestWinner.prize;
+    }
+    if (!guestPrize) {
+      guestPrize = await Prize.findOne({ roundNo: 10 });
+    }
+
+    if (io) {
+      io.emit('game:fiesta_winners_display', {
+        show: targetShow,
+        winners,
+        guestWinner,
+        guestPrize,
+      });
+    }
+
+    res.json({
+      message: targetShow ? 'Fiesta Winners broadcast to Live Screen' : 'Fiesta Winners hidden from Live Screen',
+      showFiestaWinners: targetShow,
+    });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// GET /public-state (for live audience screen without requiring login)
+router.get('/public-state', async (req, res) => {
+  try {
+    const state   = await GameState.findOne({ singleton: 'state' }).populate('guestWinner').populate('guestPrize');
+    const config  = await DrawConfig.findOne({ singleton: 'config' });
+    const winners = await Winner.find().populate('prize').populate('employee').sort({ roundNo: 1 });
+    let guestWinner = state?.guestWinner;
+    let guestPrize = state?.guestPrize;
+    if (!guestWinner) {
+      guestWinner = await Guest.findOne({ won: true }).populate('prize');
+      if (guestWinner) guestPrize = guestWinner.prize;
+    }
+    if (!guestPrize) {
+      guestPrize = await Prize.findOne({ roundNo: 10 });
+    }
+    res.json({ state, config, winners, guestWinner, guestPrize });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
 // GET /state
 router.get('/state', auth, async (req, res) => {
   try {
-    const state   = await GameState.findOne({ singleton: 'state' });
+    const state   = await GameState.findOne({ singleton: 'state' }).populate('guestWinner').populate('guestPrize');
     const config  = await DrawConfig.findOne({ singleton: 'config' });
     const winners = await Winner.find().populate('prize').populate('employee').sort({ roundNo: 1 });
     res.json({ state, config, winners });
