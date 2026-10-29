@@ -9,7 +9,10 @@ const GameState = require('../models/GameState');
 const Winner = require('../models/Winner');
 const DrawConfig = require('../models/DrawConfig');
 
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+});
 
 function assignGroup(serialNo, total) {
   if (total <= 0) return 1;
