@@ -1,8 +1,10 @@
-const dns = require('dns');
-// Ensure SRV/TXT resolution for MongoDB Atlas on Windows environments
-try {
-  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
-} catch {}
+// Ensure SRV/TXT resolution for MongoDB Atlas only on local Windows environments
+if (process.platform === 'win32') {
+  try {
+    const dns = require('dns');
+    dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+  } catch {}
+}
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
