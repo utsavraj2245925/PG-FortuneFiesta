@@ -2156,8 +2156,8 @@ export default function AdminPanel() {
     setSpinning(true);
     try {
       await axios.post('/api/game/spin', {}, auth());
-      message.success('Spinning (10 seconds)...');
-      setTimeout(() => { setSpinning(false); loadState(); }, 10500);
+      message.success('Spinning (20 seconds)...');
+      setTimeout(() => { setSpinning(false); loadState(); }, 20500);
     } catch (e) { message.error(e.response?.data?.message || 'Error'); setSpinning(false); }
   };
 
@@ -2519,8 +2519,8 @@ export default function AdminPanel() {
 
           {/* GAME CONTROL */}
           {page === 'game' && (
-            <div style={{ maxWidth: 900, margin: '0 auto' }}>
-              <Row gutter={16} style={{ marginBottom: 16 }}>
+            <div style={{ maxWidth: 980, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Row gutter={16}>
                 {[
                   { label: 'Total', value: summary.total, color: '#C8102E' },
                   { label: 'Group A', value: summary.groups?.[1] || 0 },
@@ -2533,10 +2533,301 @@ export default function AdminPanel() {
                 ))}
               </Row>
 
-              {/* ── FIESTA WINNERS AUDIENCE DISPLAY CONTROL BANNER ── */}
+              {/* 1. EMPLOYEE GAME CONTROL (ROUNDS 1A-3C) */}
+              <Card
+                title={
+                  <Space align="center">
+                    <Gamepad2 size={18} style={{ color: '#C8102E' }} />
+                    <span style={{ fontWeight: 700 }}>Employee Game Control (Rounds 1A–3C)</span>
+                    {isActive && <Badge status={status === 'spinning' ? 'processing' : 'success'} text={status === 'spinning' ? 'Spinning...' : status === 'revealed' ? 'Winner Revealed' : 'Ready'} />}
+                  </Space>
+                }
+                extra={<Popconfirm title="Reset entire employee game?" onConfirm={resetGame}><Button icon={<ReloadOutlined />} danger size="small">Reset</Button></Popconfirm>}
+              >
+                {isActive ? (
+                  <div>
+                    <Alert
+                      type="info"
+                      style={{ marginBottom: 12, padding: '8px 14px', borderRadius: 8 }}
+                      message={
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                          <span style={{ fontSize: 15, fontWeight: 700 }}>
+                            Active Round: <span style={{ color: '#C8102E', fontSize: 16 }}>{ROUND_NAMES[currentRound] || currentRound}</span> / 9
+                            &nbsp;&nbsp;|&nbsp;&nbsp;
+                            <Tag color={GROUP_COLORS[currentGroup]} style={{ fontWeight: 700 }}>{GROUP_LABELS[currentGroup]}</Tag>
+                          </span>
+                          <span style={{ fontSize: 12, color: '#64748b' }}>
+                            Completed: <strong style={{ color: '#16a34a' }}>{winners.length}</strong> / 9 rounds
+                          </span>
+                        </div>
+                      }
+                    />
+
+                    {/* All 9 rounds in ONE single compact row */}
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(9, minmax(0, 1fr))',
+                        gap: 6,
+                        marginBottom: 16,
+                      }}
+                    >
+                      {Array.from({ length: 9 }, (_, i) => {
+                        const r = i + 1;
+                        const w = winners.find(win => win.roundNo === r);
+                        const isCurrent = r === currentRound;
+                        return (
+                          <div
+                            key={r}
+                            style={{
+                              padding: '7px 4px',
+                              borderRadius: 8,
+                              border: `2px solid ${isCurrent ? '#C8102E' : w ? '#52c41a' : '#e2e8f0'}`,
+                              background: isCurrent ? '#fff1f2' : w ? '#f0fdf4' : '#fafafa',
+                              textAlign: 'center',
+                              minWidth: 0,
+                              boxShadow: isCurrent ? '0 0 0 1px #C8102E, 0 2px 6px rgba(200,16,46,0.15)' : 'none',
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 10.5,
+                                color: isCurrent ? '#9f1239' : w ? '#166534' : '#64748b',
+                                fontWeight: 800,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                lineHeight: 1.2,
+                              }}
+                              title={`${ROUND_NAMES[r]} · ${GROUP_LABELS[roundToGroup(r)]}`}
+                            >
+                              {ROUND_NAMES[r]} · {GROUP_LABELS[roundToGroup(r)]}
+                            </div>
+                            {w ? (
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: '#16a34a',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  marginTop: 4,
+                                  lineHeight: 1.2,
+                                }}
+                                title={`Winner: #${w.winnerNumber}`}
+                              >
+                                #{w.winnerNumber}
+                              </div>
+                            ) : (
+                              <div
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: isCurrent ? 700 : 500,
+                                  color: isCurrent ? '#C8102E' : '#94a3b8',
+                                  marginTop: 4,
+                                  lineHeight: 1.2,
+                                }}
+                              >
+                                {isCurrent ? '← now' : '—'}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {gameState?.status === 'revealed' && (
+                      <div style={{
+                        margin: '12px 0 16px',
+                        padding: '12px 18px',
+                        background: '#fff8e6',
+                        border: '2px dashed #D4AF37',
+                        borderRadius: 10,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 16,
+                      }}>
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#8B6914', fontSize: 14 }}>
+                            ⚠️ Winner not present?
+                          </div>
+                          <div style={{ color: '#888', fontSize: 12, marginTop: 2 }}>
+                            If the card holder is absent or card is missing, spin again for a new winner.
+                            The previous number will be excluded.
+                          </div>
+                        </div>
+                        <Button
+                          danger
+                          size="large"
+                          loading={spinning}
+                          onClick={async () => {
+                            setSpinning(true);
+                            try {
+                              await axios.post('/api/game/spin-again', {}, {
+                                headers: { Authorization: `Bearer ${localStorage.getItem('pg_admin_token')}` }
+                              });
+                              message.info('Spinning again (20 seconds) for Round ' + gameState.currentRound);
+                              setTimeout(() => { setSpinning(false); loadState(); }, 20500);
+                            } catch (e) {
+                              message.error(e.response?.data?.message || 'Error');
+                              setSpinning(false);
+                            }
+                          }}
+                          style={{ whiteSpace: 'nowrap', minWidth: 140, height: 44 }}
+                        >
+                          🔄 Spin Again
+                        </Button>
+                      </div>
+                    )}
+
+                    <Space size="middle">
+                      <Button
+                        type="primary" size="large" icon={<PlayCircleOutlined />}
+                        loading={spinning} onClick={spin}
+                        disabled={status === 'spinning' || currentRound > 9}
+                        style={{ backgroundColor: '#C8102E', borderColor: '#C8102E', height: 48, paddingInline: 32, fontSize: 16, fontWeight: 700 }}
+                      >
+                        🎰 SPIN Round {currentRound}
+                      </Button>
+                      <Button
+                        size="large" icon={<StepForwardOutlined />} onClick={nextRound}
+                        disabled={status !== 'revealed' || currentRound >= 9}
+                        style={{ height: 48, paddingInline: 24, fontWeight: 600 }}
+                      >
+                        Next Round →
+                      </Button>
+                    </Space>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                    <div style={{ fontSize: 48, marginBottom: 12 }}>🪔</div>
+                    {summary.total === 0
+                      ? <p style={{ color: '#888', marginBottom: 16 }}>Configure cards first to start.</p>
+                      : <p style={{ color: '#555', marginBottom: 16 }}><strong>{summary.total} cards</strong> ready across 3 groups.</p>
+                    }
+                    <Button type="primary" size="large" onClick={startGame} disabled={summary.total === 0}
+                      style={{ backgroundColor: '#C8102E', borderColor: '#C8102E', height: 52, paddingInline: 56, fontSize: 18, fontWeight: 700 }}>
+                      🪔 Start Lucky Draw
+                    </Button>
+                  </div>
+                )}
+              </Card>
+
+              {/* 2. VIP GUEST PLAYING ZONE */}
+              <Card
+                style={{ borderTop: '4px solid #7B1FA2' }}
+                title={
+                  <Space align="center">
+                    <Crown size={19} style={{ color: '#7B1FA2' }} />
+                    <span style={{ fontWeight: 800, color: '#4A154B' }}>VIP Guest Playing Zone (Roulette Draw — 1 Winner Round)</span>
+                    <Badge
+                      status={guestSpinning || guestState?.status === 'spinning' ? 'processing' : guestState?.winner ? 'success' : 'default'}
+                      text={guestSpinning || guestState?.status === 'spinning' ? 'Roulette Spinning (30s)...' : guestState?.winner ? 'Guest Winner Revealed' : 'Ready'}
+                    />
+                  </Space>
+                }
+                extra={
+                  <Popconfirm title="Reset VIP Guest Draw?" onConfirm={resetGuest}>
+                    <Button danger size="small" icon={<ReloadOutlined />}>Reset Guest</Button>
+                  </Popconfirm>
+                }
+              >
+                <Row gutter={[16, 12]} align="middle">
+                  <Col xs={24} sm={13}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a' }}>
+                      VIP Guests in Pool: <span style={{ color: '#7B1FA2', fontWeight: 800 }}>{guestState?.total || 0} Guests</span>
+                      {guestState?.eligibleCount !== undefined && (
+                        <span style={{ color: '#52c41a', marginLeft: 10, fontSize: 13, fontWeight: 600 }}>
+                          ({guestState.eligibleCount} eligible)
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                      Single round casino roulette wheel with 30-second suspense countdown & celebration on Live Screen.
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={11} style={{ textAlign: 'right' }}>
+                    <Space wrap size="small">
+                      <Button
+                        type="primary"
+                        size="large"
+                        loading={guestSpinning || guestState?.status === 'spinning'}
+                        onClick={spinGuest}
+                        disabled={(guestState?.eligibleCount || 0) === 0 || guestSpinning || guestState?.status === 'spinning'}
+                        icon={<Sparkles size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
+                        style={{ background: '#7B1FA2', borderColor: '#7B1FA2', fontWeight: 800, height: 44, paddingInline: 24 }}
+                      >
+                        SPIN Guest Roulette (30s)
+                      </Button>
+                      <Button
+                        size="large"
+                        onClick={() => window.open('/live', '_blank')}
+                        icon={<Tv size={15} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
+                        style={{ height: 44, fontWeight: 600 }}
+                      >
+                        View Live Screen
+                      </Button>
+                    </Space>
+                  </Col>
+                </Row>
+
+                {/* Guest Winner Display & Revert Option */}
+                {guestState?.winner && (
+                  <div
+                    style={{
+                      background: 'linear-gradient(135deg, #fbf7ff 0%, #f3e8ff 100%)',
+                      border: '2px solid #7B1FA2',
+                      borderRadius: 12,
+                      padding: '14px 18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 12,
+                      marginTop: 14,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#7B1FA2', letterSpacing: 0.8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Crown size={15} /> VIP GUEST WINNER DRAWN:
+                      </div>
+                      <div style={{ fontSize: 19, fontWeight: 900, color: '#1a1a1a', marginTop: 2 }}>
+                        #{guestState.winner.serialNo} — {guestState.winner.name} &nbsp;
+                        <Tag color="purple" style={{ fontSize: 12, fontWeight: 700 }}>Unit: {guestState.winner.unit || 'PGTL'}</Tag>
+                      </div>
+                      {guestState.prize?.name && (
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#B8860B', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Gift size={15} /> Won Prize: {guestState.prize.name} {guestState.prize.description && `(${guestState.prize.description})`}
+                        </div>
+                      )}
+                    </div>
+
+                    <Popconfirm
+                      title="Guest not present / available?"
+                      description="Clicking revert returns this guest to eligible pool so you can spin again!"
+                      onConfirm={revertGuest}
+                      okText="Revert & Spin Again"
+                      okType="danger"
+                    >
+                      <Button
+                        danger
+                        size="middle"
+                        icon={<RefreshCw size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
+                        style={{ height: 40, fontWeight: 700 }}
+                      >
+                        Revert (Guest Not Available)
+                      </Button>
+                    </Popconfirm>
+                  </div>
+                )}
+              </Card>
+
+              {/* 3. AUDIENCE SCREEN DISPLAY: PG - FORTUNE FIESTA WINNERS */}
               <Card
                 style={{
-                  marginBottom: 16,
                   background: 'linear-gradient(135deg, #1e1b4b 0%, #311042 50%, #1e1b4b 100%)',
                   border: '2px solid #D4AF37',
                   borderRadius: 14,
@@ -2568,7 +2859,7 @@ export default function AdminPanel() {
                         color: '#000',
                         fontWeight: 900,
                         fontSize: 15,
-                        height: 48,
+                        height: 46,
                         paddingInline: 24,
                         boxShadow: '0 4px 14px rgba(255,215,0,0.35)',
                       }}
@@ -2579,242 +2870,12 @@ export default function AdminPanel() {
                       size="large"
                       icon={<ExternalLink size={16} />}
                       onClick={() => window.open('/live', '_blank')}
-                      style={{ height: 48, fontWeight: 700 }}
+                      style={{ height: 46, fontWeight: 700 }}
                     >
                       View Live Screen ↗
                     </Button>
                   </Space>
                 </div>
-              </Card>
-
-              <Card
-                title={
-                  <Space align="center">
-                    <Gamepad2 size={18} style={{ color: '#C8102E' }} />
-                    <span style={{ fontWeight: 700 }}>Employee Game Control (Rounds 1A–3C)</span>
-                    {isActive && <Badge status={status === 'spinning' ? 'processing' : 'success'} text={status === 'spinning' ? 'Spinning...' : status === 'revealed' ? 'Winner Revealed' : 'Ready'} />}
-                  </Space>
-                }
-                extra={<Popconfirm title="Reset entire employee game?" onConfirm={resetGame}><Button icon={<ReloadOutlined />} danger size="small">Reset</Button></Popconfirm>}
-              >
-                {isActive ? (
-                  <div>
-                    <Alert type="info" style={{ marginBottom: 16 }}
-                      message={<span style={{ fontSize: 16, fontWeight: 600 }}>Round <span style={{ color: '#C8102E' }}>{ROUND_NAMES[currentRound] || currentRound}</span> / 9 &nbsp;|&nbsp; <Tag color={GROUP_COLORS[currentGroup]}>{GROUP_LABELS[currentGroup]}</Tag></span>}
-                    />
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
-                      {Array.from({ length: 9 }, (_, i) => {
-                        const r = i + 1;
-                        const w = winners.find(w => w.roundNo === r);
-                        return (
-                          <div key={r} style={{ padding: '8px 12px', borderRadius: 8, border: `2px solid ${r === currentRound ? '#C8102E' : w ? '#52c41a' : '#e0e0e0'}`, background: r === currentRound ? '#fff0f0' : w ? '#f6ffed' : '#fafafa', minWidth: 90 }}>
-                            <div style={{ fontSize: 11, color: '#888', fontWeight: 700 }}>{ROUND_NAMES[r]} · {GROUP_LABELS[roundToGroup(r)]}</div>
-                            {w ? <div style={{ fontSize: 11, fontWeight: 600, color: '#52c41a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 85 }}>#{w.winnerNumber}</div>
-                              : <div style={{ fontSize: 11, color: '#bbb' }}>{r === currentRound ? '← now' : '—'}</div>}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {gameState?.status === 'revealed' && (
-                      <div style={{
-                        margin: '16px 0',
-                        padding: '14px 20px',
-                        background: '#fff8e6',
-                        border: '2px dashed #D4AF37',
-                        borderRadius: 10,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 16,
-                      }}>
-                        <div>
-                          <div style={{ fontWeight: 700, color: '#8B6914', fontSize: 14 }}>
-                            ⚠️ Winner not present?
-                          </div>
-                          <div style={{ color: '#888', fontSize: 12, marginTop: 2 }}>
-                            If the card holder is absent or card is missing, spin again for a new winner.
-                            The previous number will be excluded.
-                          </div>
-                        </div>
-                        <Button
-                          danger
-                          size="large"
-                          loading={spinning}
-                          onClick={async () => {
-                            setSpinning(true);
-                            try {
-                              await axios.post('/api/game/spin-again', {}, {
-                                headers: { Authorization: `Bearer ${localStorage.getItem('pg_admin_token')}` }
-                              });
-                              message.info('Spinning again (10 seconds) for Round ' + gameState.currentRound);
-                              setTimeout(() => { setSpinning(false); loadState(); }, 10500);
-                            } catch (e) {
-                              message.error(e.response?.data?.message || 'Error');
-                              setSpinning(false);
-                            }
-                          }}
-                          style={{ whiteSpace: 'nowrap', minWidth: 140 }}
-                        >
-                          🔄 Spin Again
-                        </Button>
-                      </div>
-                    )}
-
-                    <Space size="middle">
-                      <Button
-                        type="primary" size="large" icon={<PlayCircleOutlined />}
-                        loading={spinning} onClick={spin}
-                        disabled={status === 'spinning' || currentRound > 9}
-                        style={{ backgroundColor: '#C8102E', borderColor: '#C8102E', height: 52, paddingInline: 36, fontSize: 17 }}
-                      >
-                        🎰 SPIN Round {currentRound}
-                      </Button>
-                      <Button
-                        size="large" icon={<StepForwardOutlined />} onClick={nextRound}
-                        disabled={status !== 'revealed' || currentRound >= 9}
-                        style={{ height: 52, paddingInline: 28 }}
-                      >
-                        Next Round →
-                      </Button>
-                    </Space>
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '32px 0' }}>
-                    <div style={{ fontSize: 48, marginBottom: 12 }}>🪔</div>
-                    {summary.total === 0
-                      ? <p style={{ color: '#888', marginBottom: 16 }}>Configure cards first to start.</p>
-                      : <p style={{ color: '#555', marginBottom: 16 }}><strong>{summary.total} cards</strong> ready across 3 groups.</p>
-                    }
-                    <Button type="primary" size="large" onClick={startGame} disabled={summary.total === 0}
-                      style={{ backgroundColor: '#C8102E', borderColor: '#C8102E', height: 56, paddingInline: 56, fontSize: 20 }}>
-                      🪔 Start Lucky Draw
-                    </Button>
-                  </div>
-                )}
-              </Card>
-
-              {/* VIP GUEST PLAYING ZONE SECTION (BELOW EMPLOYEE CONTROLS 1 TO 9) */}
-              <Card
-                style={{ marginTop: 24, borderTop: '4px solid #7B1FA2' }}
-                title={
-                  <Space align="center">
-                    <Crown size={19} style={{ color: '#7B1FA2' }} />
-                    <span style={{ fontWeight: 800, color: '#4A154B' }}>VIP Guest Playing Zone (Roulette Draw — 1 Winner Round)</span>
-                    <Badge
-                      status={guestSpinning || guestState?.status === 'spinning' ? 'processing' : guestState?.winner ? 'success' : 'default'}
-                      text={guestSpinning || guestState?.status === 'spinning' ? 'Roulette Spinning (30s)...' : guestState?.winner ? 'Guest Winner Revealed' : 'Ready'}
-                    />
-                  </Space>
-                }
-                extra={
-                  <Popconfirm title="Reset VIP Guest Draw?" onConfirm={resetGuest}>
-                    <Button danger size="small" icon={<ReloadOutlined />}>Reset Guest</Button>
-                  </Popconfirm>
-                }
-              >
-                <Row gutter={[16, 16]} align="middle" style={{ marginBottom: 16 }}>
-                  <Col xs={24} sm={12}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a' }}>
-                      VIP Guests in Pool: <span style={{ color: '#7B1FA2' }}>{guestState?.total || 0} Guests</span>
-                      {guestState?.eligibleCount !== undefined && (
-                        <span style={{ color: '#52c41a', marginLeft: 10, fontSize: 13 }}>
-                          ({guestState.eligibleCount} eligible)
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-                      Single round casino roulette wheel with 30-second suspense countdown & celebration on Live Screen.
-                    </div>
-                  </Col>
-                  <Col xs={24} sm={12} style={{ textAlign: 'right' }}>
-                    <Space wrap>
-                      <Button
-                        type="primary"
-                        size="large"
-                        loading={guestSpinning || guestState?.status === 'spinning'}
-                        onClick={spinGuest}
-                        disabled={(guestState?.eligibleCount || 0) === 0 || guestSpinning || guestState?.status === 'spinning'}
-                        icon={<Sparkles size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
-                        style={{ background: '#7B1FA2', borderColor: '#7B1FA2', fontWeight: 800, height: 48, paddingInline: 28 }}
-                      >
-                        SPIN Guest Roulette (30s)
-                      </Button>
-                      <Button
-                        size="large"
-                        icon={<Trophy size={16} />}
-                        loading={togglingFiesta}
-                        onClick={toggleFiestaWinners}
-                        style={{
-                          background: showFiestaWinners ? '#10b981' : '#f59e0b',
-                          borderColor: showFiestaWinners ? '#059669' : '#d97706',
-                          color: '#fff',
-                          fontWeight: 800,
-                          height: 48,
-                        }}
-                      >
-                        {showFiestaWinners ? '✅ Fiesta Winners Live' : '🏆 To Show Fiesta Winners'}
-                      </Button>
-                      <Button
-                        size="large"
-                        onClick={() => window.open('/live', '_blank')}
-                        icon={<Tv size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
-                        style={{ height: 48 }}
-                      >
-                        View Live Screen
-                      </Button>
-                    </Space>
-                  </Col>
-                </Row>
-
-                {/* Guest Winner Display & Revert Option */}
-                {guestState?.winner && (
-                  <div
-                    style={{
-                      background: 'linear-gradient(135deg, #fbf7ff 0%, #f3e8ff 100%)',
-                      border: '2px solid #7B1FA2',
-                      borderRadius: 12,
-                      padding: '16px 20px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: 16,
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: '#7B1FA2', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Crown size={16} /> VIP GUEST WINNER DRAWN:
-                      </div>
-                      <div style={{ fontSize: 20, fontWeight: 900, color: '#1a1a1a', marginTop: 2 }}>
-                        #{guestState.winner.serialNo} — {guestState.winner.name} &nbsp;
-                        <Tag color="purple" style={{ fontSize: 13, fontWeight: 700 }}>Unit: {guestState.winner.unit || 'PGTL'}</Tag>
-                      </div>
-                      {guestState.prize?.name && (
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#D4AF37', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Gift size={15} /> Won Prize: {guestState.prize.name} {guestState.prize.description && `(${guestState.prize.description})`}
-                        </div>
-                      )}
-                    </div>
-
-                    <Popconfirm
-                      title="Guest not present / available?"
-                      description="Clicking revert returns this guest to eligible pool so you can spin again!"
-                      onConfirm={revertGuest}
-                      okText="Revert & Spin Again"
-                      okType="danger"
-                    >
-                      <Button
-                        danger
-                        size="large"
-                        icon={<RefreshCw size={15} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
-                        style={{ height: 44, fontWeight: 700 }}
-                      >
-                        Revert (Guest Not Available)
-                      </Button>
-                    </Popconfirm>
-                  </div>
-                )}
               </Card>
             </div>
           )}

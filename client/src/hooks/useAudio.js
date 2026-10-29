@@ -137,9 +137,6 @@ function safeStopAudio(audio) {
   try {
     audio.pause();
     audio.currentTime = 0;
-    audio.volume = 0;
-    audio.src = '';
-    audio.load();
   } catch {}
 }
 
@@ -195,51 +192,142 @@ export function stopEmpSong() {
   empSongAudio = null;
 }
 
-// ── HALL OF FAME SONG FOR FIESTA WINNERS SCREEN ──
+// ── HALL OF FAME SONG & FIRECRACKER AUDIO FOR FIESTA WINNERS SCREEN ──
 let hallOfFameAudio = null;
+let crackerAudio = null;
+let crackerTimer = null;
 
-export function preloadHallOfFameSound() {
+export function preloadFiestaWinnersAudio() {
   try {
     if (!hallOfFameAudio) {
       hallOfFameAudio = new Audio('/hall_of_fame.mp3');
       hallOfFameAudio.preload = 'auto';
+      hallOfFameAudio.loop = true;
+      hallOfFameAudio.volume = 0.95;
       hallOfFameAudio.load();
     }
-  } catch {}
+    if (!crackerAudio) {
+      crackerAudio = new Audio('/cracker_sound.mp3');
+      crackerAudio.preload = 'auto';
+      crackerAudio.loop = false;
+      crackerAudio.volume = 0.90;
+      crackerAudio.load();
+    }
+  } catch (err) {
+    console.warn('Audio preloading error:', err);
+  }
 }
 
-export function playHallOfFameSong() {
+export function preloadHallOfFameSound() {
+  preloadFiestaWinnersAudio();
+}
+
+export function playFiestaCelebrationAudio() {
   if (isGlobalMuted) return;
   try {
     resumeAudio();
-    stopAllAudio();
-    hallOfFameAudio = new Audio('/hall_of_fame.mp3');
-    hallOfFameAudio.loop = true;
-    hallOfFameAudio.volume = 0.95;
-    activeAudios.add(hallOfFameAudio);
 
-    const playPromise = hallOfFameAudio.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        try {
-          if (isGlobalMuted) return;
-          const fallback = new Audio('/hall_of_fame.mpeg');
-          fallback.loop = true;
-          fallback.volume = 0.95;
-          activeAudios.add(fallback);
-          fallback.play().catch(() => {});
-          hallOfFameAudio = fallback;
-        } catch {}
-      });
+    if (crackerTimer) {
+      clearTimeout(crackerTimer);
+      crackerTimer = null;
     }
+
+    // Stop any other active game sounds
+    if (empSongAudio) { safeStopAudio(empSongAudio); empSongAudio = null; }
+    if (squidGameAudio) { safeStopAudio(squidGameAudio); squidGameAudio = null; }
+    if (countdownBeepAudio) { safeStopAudio(countdownBeepAudio); countdownBeepAudio = null; }
+    if (winnerExplosionAudio) { safeStopAudio(winnerExplosionAudio); winnerExplosionAudio = null; }
+
+    // Ensure instances exist and preloaded
+    if (!hallOfFameAudio) {
+      hallOfFameAudio = new Audio('/hall_of_fame.mp3');
+      hallOfFameAudio.preload = 'auto';
+      hallOfFameAudio.loop = true;
+      hallOfFameAudio.volume = 0.95;
+    }
+    if (!crackerAudio) {
+      crackerAudio = new Audio('/cracker_sound.mp3');
+      crackerAudio.preload = 'auto';
+      crackerAudio.loop = false;
+      crackerAudio.volume = 0.90;
+    }
+
+    // 1. Play Hall of Fame song IMMEDIATELY (0 delay)
+    try {
+      hallOfFameAudio.currentTime = 0;
+      hallOfFameAudio.loop = true;
+      hallOfFameAudio.volume = 0.95;
+      activeAudios.add(hallOfFameAudio);
+      const playHof = hallOfFameAudio.play();
+      if (playHof !== undefined) {
+        playHof.catch(err => {
+          console.warn('Hall of Fame play error:', err);
+        });
+      }
+    } catch (e) {
+      console.warn('Error playing Hall of Fame:', e);
+    }
+
+    // 2. Play Firecracker background sound simultaneously together with Hall of Fame
+    try {
+      crackerAudio.currentTime = 0;
+      crackerAudio.loop = false;
+      crackerAudio.volume = 0.90;
+      activeAudios.add(crackerAudio);
+      const playCracker = crackerAudio.play();
+      if (playCracker !== undefined) {
+        playCracker.catch(err => {
+          console.warn('Cracker play error:', err);
+        });
+      }
+    } catch (e) {
+      console.warn('Error playing cracker sound:', e);
+    }
+
+    // 3. Exactly after 28 seconds: stop the cracker sound, while Hall of Fame keeps playing continuously till the end!
+    crackerTimer = setTimeout(() => {
+      if (crackerAudio) {
+        try {
+          crackerAudio.pause();
+          crackerAudio.currentTime = 0;
+          activeAudios.delete(crackerAudio);
+        } catch {}
+      }
+      crackerTimer = null;
+    }, 28000);
+
   } catch (err) {
-    console.warn('Error playing Hall of Fame song:', err);
+    console.warn('Error in playFiestaCelebrationAudio:', err);
+  }
+}
+
+export function playHallOfFameSong() {
+  playFiestaCelebrationAudio();
+}
+
+export function stopFiestaCelebrationAudio() {
+  if (crackerTimer) {
+    clearTimeout(crackerTimer);
+    crackerTimer = null;
+  }
+  if (crackerAudio) {
+    try {
+      crackerAudio.pause();
+      crackerAudio.currentTime = 0;
+      activeAudios.delete(crackerAudio);
+    } catch {}
+  }
+  if (hallOfFameAudio) {
+    try {
+      hallOfFameAudio.pause();
+      hallOfFameAudio.currentTime = 0;
+      activeAudios.delete(hallOfFameAudio);
+    } catch {}
   }
 }
 
 export function stopHallOfFameSong() {
-  safeStopAudio(hallOfFameAudio);
-  hallOfFameAudio = null;
+  stopFiestaCelebrationAudio();
 }
 
 // ── SQUID GAME, COUNTDOWN BEEP & EXPLOSION AUDIO FOR VIP GUEST ROULETTE ──
@@ -518,7 +606,7 @@ export function playClockTick(countdownValue) {
 
     // Mechanical click envelope
     gainNode.gain.setValueAtTime(0, ac.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.4, ac.currentTime + 0.015);
+    gainNode.gain.linearRampToValueAtTime(0.65, ac.currentTime + 0.015);
     gainNode.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.22);
 
     osc1.start(ac.currentTime);

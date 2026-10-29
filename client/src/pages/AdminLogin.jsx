@@ -28,13 +28,6 @@ export default function AdminLogin() {
     }
   };
 
-  const fillCredentials = () => {
-    form.setFieldsValue({
-      username: 'admin',
-      password: 'pg@diwali2024'
-    });
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
@@ -49,21 +42,20 @@ export default function AdminLogin() {
             form={form}
             layout="vertical"
             onFinish={onFinish}
-            initialValues={{ username: 'admin', password: 'pg@diwali2024' }}
           >
             <Form.Item
               name="username"
               label="Username"
               rules={[{ required: true, message: 'Please enter username' }]}
             >
-              <Input size="large" placeholder="admin" autoFocus />
+              <Input size="large" placeholder="Enter username" autoFocus />
             </Form.Item>
             <Form.Item
               name="password"
               label="Password"
               rules={[{ required: true, message: 'Please enter password' }]}
             >
-              <Input.Password size="large" placeholder="pg@diwali2024" />
+              <Input.Password size="large" placeholder="Enter password" />
             </Form.Item>
             <Button
               type="primary"
@@ -76,21 +68,6 @@ export default function AdminLogin() {
               Login
             </Button>
           </Form>
-
-          <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-900">
-            <div className="font-semibold mb-1 flex items-center justify-between">
-              <span>🔑 Default Admin Credentials</span>
-              <button
-                type="button"
-                onClick={fillCredentials}
-                className="text-red-700 underline font-normal hover:text-red-900"
-              >
-                Auto-fill
-              </button>
-            </div>
-            <div>Username: <code className="bg-amber-100 px-1 py-0.5 rounded">admin</code></div>
-            <div className="mt-1">Password: <code className="bg-amber-100 px-1 py-0.5 rounded">pg@diwali2024</code> (or <code className="bg-amber-100 px-1 py-0.5 rounded">admin</code>)</div>
-          </div>
         </Card>
       </div>
     </div>

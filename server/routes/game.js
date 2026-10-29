@@ -93,17 +93,18 @@ router.post('/spin', auth, async (req, res) => {
       { upsert: true }
     );
 
-    // 10-second spin animation broadcast
+    // 20-second spin animation broadcast with authentic group sample codes
     if (io) {
       io.emit('game:spin_start', {
         round,
         group,
-        duration: 10000,
-        sampleCodes: sampleCodes.slice(0, 50),
+        duration: 20000,
+        sampleCodes: sampleCodes.slice(0, 200),
+        winnerLength: winnerCode.length,
       });
     }
 
-    // After 10 seconds: reveal winner and store in database
+    // After 20 seconds: reveal winner and store in database
     setTimeout(async () => {
       try {
         const winner = await Winner.create({
@@ -125,6 +126,7 @@ router.post('/spin', auth, async (req, res) => {
         if (io) {
           io.emit('game:winner_revealed', {
             round,
+            roundNo: round,
             group,
             winnerNumber: winnerCode,
             employeeCode: winnerCode,
@@ -145,9 +147,9 @@ router.post('/spin', auth, async (req, res) => {
       } catch (err) {
         console.error('Error in spin reveal timeout:', err);
       }
-    }, 10000);
+    }, 20000);
 
-    res.json({ message: 'Spinning started for 10 seconds', round, group });
+    res.json({ message: 'Spinning started for 20 seconds', round, group });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
@@ -201,8 +203,9 @@ router.post('/spin-again', auth, async (req, res) => {
       io.emit('game:spin_start', {
         round,
         group,
-        duration: 10000,
-        sampleCodes: sampleCodes.slice(0, 50),
+        duration: 20000,
+        sampleCodes: sampleCodes.slice(0, 200),
+        winnerLength: winnerCode.length,
       });
     }
 
@@ -227,6 +230,7 @@ router.post('/spin-again', auth, async (req, res) => {
         if (io) {
           io.emit('game:winner_revealed', {
             round,
+            roundNo: round,
             group,
             winnerNumber: winnerCode,
             employeeCode: winnerCode,
@@ -247,7 +251,7 @@ router.post('/spin-again', auth, async (req, res) => {
       } catch (err) {
         console.error('Error in spin-again reveal timeout:', err);
       }
-    }, 10000);
+    }, 20000);
 
     res.json({ message: 'Spinning again for 10 seconds...' });
   } catch (e) { res.status(500).json({ message: e.message }); }
