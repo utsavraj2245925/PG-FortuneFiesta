@@ -43,7 +43,8 @@ export default function useGuestDraw() {
   useEffect(() => {
     refresh();
     // ASSUMPTION: Socket.IO is reachable on the same origin (Vite proxy). Otherwise set VITE_SOCKET_URL.
-    const socket = io(import.meta.env.VITE_SOCKET_URL || undefined);
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'https://pg-fortune-fiesta-server.onrender.com';
+    const socket = io(socketUrl, { transports: ['websocket', 'polling'] });
 
     socket.on('guest:spinStart', () => startRolling());
 
