@@ -57,8 +57,17 @@ async function recomputeGroups() {
 }
 
 // Universal parser for Excel (.xlsx, .xls) and CSV across all sheets
-function parseEmployeeFile(filePath) {
-  const buffer = fs.readFileSync(filePath);
+function parseEmployeeFile(fileInput) {
+  let buffer;
+  if (Buffer.isBuffer(fileInput)) {
+    buffer = fileInput;
+  } else if (typeof fileInput === 'string') {
+    buffer = fs.readFileSync(fileInput);
+  } else if (fileInput && fileInput.buffer) {
+    buffer = fileInput.buffer;
+  } else {
+    throw new Error('No valid file data received for employee parsing');
+  }
   const workbook = XLSX.read(buffer, { type: 'buffer' });
 
   if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
@@ -233,8 +242,8 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
   try {
     const mode = req.body.mode || 'replace'; // 'replace' or 'append'
-    const results = parseEmployeeFile(req.file.path);
-    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    const results = parseEmployeeFile(req.file.buffer || req.file.path);
+    if (req.file.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 
     if (results.length === 0) {
       return res.status(400).json({ message: 'No valid employee records found in file. Please verify column headers.' });
@@ -295,7 +304,7 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
       });
     }
   } catch (e) {
-    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     res.status(500).json({ message: e.message });
   }
 });
