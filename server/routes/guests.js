@@ -10,6 +10,7 @@ const auth = require('../middleware/auth');
 
 const SPIN_DURATION = 30000; // 30 seconds
 let spinning = false;
+let spinTimer = null;
 
 // Normalize string for column matching
 const norm = (k) => String(k || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -412,6 +413,7 @@ module.exports = (io) => {
         won: g.won,
       }));
 
+      if (spinTimer) { clearTimeout(spinTimer); spinTimer = null; }
       spinning = true;
 
       await GameState.findOneAndUpdate(
@@ -444,7 +446,8 @@ module.exports = (io) => {
       });
 
       // 30 seconds timer for the roulette reveal
-      setTimeout(async () => {
+      spinTimer = setTimeout(async () => {
+        spinTimer = null;
         try {
           winner.won = true;
           winner.wonRound = 1;
@@ -491,7 +494,8 @@ module.exports = (io) => {
   // POST /api/guests/revert — revert guest winner if absent / not available, allowing another spin
   router.post('/revert', auth, async (req, res) => {
     try {
-      if (spinning) return res.status(409).json({ message: 'Roulette spin is in progress' });
+      if (spinTimer) { clearTimeout(spinTimer); spinTimer = null; }
+      spinning = false;
 
       const state = await GameState.findOne({ singleton: 'state' });
       if (state?.guestWinner) {
@@ -521,7 +525,8 @@ module.exports = (io) => {
   // POST /api/guests/reset — reset guest draw state
   router.post('/reset', auth, async (req, res) => {
     try {
-      if (spinning) return res.status(409).json({ message: 'Roulette spin is in progress' });
+      if (spinTimer) { clearTimeout(spinTimer); spinTimer = null; }
+      spinning = false;
 
       await Guest.updateMany({}, { won: false, wonRound: null });
       await GameState.findOneAndUpdate(

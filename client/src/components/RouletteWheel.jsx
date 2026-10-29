@@ -163,6 +163,7 @@ export default function RouletteWheel({
       if (winner) {
         setIsRevealed(true);
         setSecondsLeft(0);
+        setCountdownNum(0);
         setRevealStage(4);
         spinCompletedRef.current = true;
 
@@ -181,16 +182,24 @@ export default function RouletteWheel({
           }
           fireGrandCelebration();
         }
+      } else {
+        // Idle / Reverted / Reset state: immediately clear previous winner & countdown data
+        setIsRevealed(false);
+        setSecondsLeft(30);
+        setCountdownNum(null);
+        setRevealStage(0);
+        spinCompletedRef.current = false;
+        hasExplodedRef.current = false;
+        hasStartedBeepRef.current = false;
       }
       return;
     }
 
-    // If this spin already completed its full cycle, do NOT re-run!
-    if (spinCompletedRef.current) return;
-
     // ── INITIALIZE BRAND NEW SPIN ──
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    spinCompletedRef.current = false;
     setIsRevealed(false);
-    setSecondsLeft(30);
+    setSecondsLeft(Math.max(1, Math.round(duration / 1000)));
     setCountdownNum(null);
     setRevealStage(0);
     lastTickSecRef.current = null;

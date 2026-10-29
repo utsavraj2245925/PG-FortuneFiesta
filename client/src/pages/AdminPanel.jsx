@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Layout, Menu, Button, Upload, Table, Tag, Form, Input, InputNumber,
   message, Popconfirm, Card, Statistic, Row, Col, Badge, Space, Alert, Modal, Select, Tooltip, Pagination,
@@ -26,6 +26,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import axios from 'axios';
+import { useSocket } from '../hooks/useSocket';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { GuestCardFront, GuestCardBack } from '../components/GuestCardsViewer';
@@ -2044,6 +2045,47 @@ export default function AdminPanel() {
   const [guestSpinning, setGuestSpinning] = useState(false);
   const [showFiestaWinners, setShowFiestaWinners] = useState(false);
   const [togglingFiesta, setTogglingFiesta] = useState(false);
+  const guestSpinTimerRef = useRef(null);
+
+  // Real-time synchronization with audience screen
+  useSocket({
+    'guest:spin_start': () => {
+      setGuestSpinning(true);
+      setGuestState(prev => prev ? { ...prev, winner: null, spinning: true, status: 'spinning' } : prev);
+    },
+    'guest:winner_revealed': (data) => {
+      if (guestSpinTimerRef.current) {
+        clearTimeout(guestSpinTimerRef.current);
+        guestSpinTimerRef.current = null;
+      }
+      setGuestSpinning(false);
+      setGuestState(prev => prev ? { ...prev, winner: data.winner, prize: data.prize, spinning: false, status: 'revealed' } : prev);
+    },
+    'guest:reverted': () => {
+      if (guestSpinTimerRef.current) {
+        clearTimeout(guestSpinTimerRef.current);
+        guestSpinTimerRef.current = null;
+      }
+      setGuestSpinning(false);
+      setGuestState(prev => prev ? { ...prev, winner: null, spinning: false, status: 'idle' } : prev);
+      loadGuestState();
+    },
+    'guest:reset': () => {
+      if (guestSpinTimerRef.current) {
+        clearTimeout(guestSpinTimerRef.current);
+        guestSpinTimerRef.current = null;
+      }
+      setGuestSpinning(false);
+      setGuestState(prev => prev ? { ...prev, winner: null, spinning: false, status: 'idle' } : prev);
+      loadGuestState();
+    },
+    'guest:state': (st) => {
+      if (st) {
+        setGuestState(st);
+        setGuestSpinning(Boolean(st.spinning && !st.winner));
+      }
+    },
+  });
 
   const toggleFiestaWinners = async () => {
     setTogglingFiesta(true);
@@ -2066,17 +2108,19 @@ export default function AdminPanel() {
     try {
       const res = await axios.get('/api/guests/state', auth());
       setGuestState(res.data);
-      if (res.data.spinning) setGuestSpinning(true);
+      if (res.data.spinning && !res.data.winner) setGuestSpinning(true);
       else setGuestSpinning(false);
     } catch {}
   }, []);
 
   const spinGuest = async () => {
     setGuestSpinning(true);
+    if (guestSpinTimerRef.current) clearTimeout(guestSpinTimerRef.current);
     try {
       await axios.post('/api/guests/spin', {}, auth());
       message.success('VIP Guest Roulette spinning for 30s on Live screen!');
-      setTimeout(() => {
+      guestSpinTimerRef.current = setTimeout(() => {
+        guestSpinTimerRef.current = null;
         setGuestSpinning(false);
         loadGuestState();
       }, 30500);
@@ -2087,22 +2131,36 @@ export default function AdminPanel() {
   };
 
   const revertGuest = async () => {
+    if (guestSpinTimerRef.current) {
+      clearTimeout(guestSpinTimerRef.current);
+      guestSpinTimerRef.current = null;
+    }
+    setGuestSpinning(false);
+    setGuestState(prev => prev ? { ...prev, winner: null, status: 'idle', spinning: false } : prev);
     try {
       await axios.post('/api/guests/revert', {}, auth());
       message.success('Guest winner reverted. Guest returned to eligible pool. Ready to spin again!');
       loadGuestState();
     } catch (e) {
       message.error(e.response?.data?.message || 'Failed to revert winner');
+      loadGuestState();
     }
   };
 
   const resetGuest = async () => {
+    if (guestSpinTimerRef.current) {
+      clearTimeout(guestSpinTimerRef.current);
+      guestSpinTimerRef.current = null;
+    }
+    setGuestSpinning(false);
+    setGuestState(prev => prev ? { ...prev, winner: null, status: 'idle', spinning: false } : prev);
     try {
       await axios.post('/api/guests/reset', {}, auth());
       message.success('Guest draw reset');
       loadGuestState();
     } catch (e) {
       message.error(e.response?.data?.message || 'Failed to reset guest draw');
+      loadGuestState();
     }
   };
 

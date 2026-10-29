@@ -1269,12 +1269,14 @@ export default function LiveDraw() {
       setGuestSpinning(false);
       setGuestWinner(null);
       setGuestPrize(null);
+      setGuestSpinData(null);
       stopAllAudio();
     },
     'guest:reset': () => {
       setGuestSpinning(false);
       setGuestWinner(null);
       setGuestPrize(null);
+      setGuestSpinData(null);
       stopAllAudio();
     },
     'guest:state': (st) => {
@@ -1288,6 +1290,10 @@ export default function LiveDraw() {
         if (st.winner) {
           setGuestWinner(st.winner);
           setGuestPrize(st.prize);
+        } else {
+          setGuestWinner(null);
+          setGuestPrize(null);
+          setGuestSpinData(null);
         }
       }
     },
