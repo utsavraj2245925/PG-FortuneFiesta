@@ -46,16 +46,9 @@ module.exports = (io) => {
     let currentWinner = null;
     let currentPrize = null;
 
-    if (gameState?.guestWinner) {
+    if (gameState?.guestStatus === 'revealed' && gameState?.guestWinner) {
       currentWinner = gameState.guestWinner;
-      currentPrize = gameState.guestPrize;
-    } else {
-      // Check directly from Guest if won
-      const lastWon = await Guest.findOne({ won: true }).populate('prize');
-      if (lastWon) {
-        currentWinner = lastWon;
-        currentPrize = lastWon.prize || (await Prize.findOne({ roundNo: 10 }));
-      }
+      currentPrize = gameState.guestPrize || (await Prize.findOne({ roundNo: 10 }));
     }
 
     if (!currentPrize) {
@@ -497,17 +490,12 @@ module.exports = (io) => {
       if (spinTimer) { clearTimeout(spinTimer); spinTimer = null; }
       spinning = false;
 
-      const state = await GameState.findOne({ singleton: 'state' });
-      if (state?.guestWinner) {
-        await Guest.findByIdAndUpdate(state.guestWinner, { won: false, wonRound: null });
-      } else {
-        // Find any guest that was marked won
-        await Guest.updateMany({ won: true }, { won: false, wonRound: null });
-      }
+      await Guest.updateMany({}, { $set: { won: false, wonRound: null, prize: null } });
 
       await GameState.findOneAndUpdate(
         { singleton: 'state' },
-        { guestStatus: 'idle', guestWinner: null, guestPrize: null }
+        { $set: { guestStatus: 'idle', guestWinner: null, guestPrize: null } },
+        { upsert: true }
       );
 
       if (io) {
