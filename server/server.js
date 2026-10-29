@@ -20,9 +20,44 @@ const io = new Server(server, {
 // Expose io to routes
 app.set('io', io);
 
-app.use(cors());
+// CORS configuration (supports CLIENT_URL if provided, or allows all)
+const allowedOrigins = process.env.CLIENT_URL ? [process.env.CLIENT_URL, '*'] : '*';
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Root health check endpoint
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    app: 'PG Fortune Fiesta API Server',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'connecting',
+    time: new Date().toISOString(),
+  });
+});
+
+// Connect to MongoDB with caching for serverless
+let isConnected = false;
+async function connectDB() {
+  if (isConnected && mongoose.connection.readyState === 1) return;
+  try {
+    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/diwali_lucky_draw";
+    const conn = await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 });
+    isConnected = conn.connections[0].readyState === 1;
+    console.log('MongoDB connected');
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message);
+  }
+}
+connectDB();
+
+// Middleware to ensure DB connection on serverless invocations
+app.use(async (req, res, next) => {
+  if (!isConnected || mongoose.connection.readyState !== 1) {
+    await connectDB();
+  }
+  next();
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -30,8 +65,6 @@ app.use('/api/employees', require('./routes/employees'));
 app.use('/api/prizes', require('./routes/prizes'));
 app.use('/api/cards', require('./routes/cards'));
 app.use('/api/game', require('./routes/game'));
-
-// ASSUMPTION: `io` is your Socket.IO server instance, available here.
 app.use('/api/guests', require('./routes/guests')(io));
 
 // Socket.IO
@@ -40,13 +73,12 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => console.log('Client disconnected:', socket.id));
 });
 
-// MongoDB + Start
-const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/diwali_lucky_draw";
-mongoose.connect(mongoUri)
-  .then(() => {
-    console.log('MongoDB connected');
-    server.listen(process.env.PORT || 5000, () =>
-      console.log(`Server running on port ${process.env.PORT || 5000}`)
-    );
-  })
-  .catch(err => { console.error(err); process.exit(1); });
+// Start server locally (outside Vercel)
+if (!process.env.VERCEL) {
+  server.listen(process.env.PORT || 5000, () =>
+    console.log(`Server running on port ${process.env.PORT || 5000}`)
+  );
+}
+
+// Export Express app for Vercel Serverless Function
+module.exports = app;
