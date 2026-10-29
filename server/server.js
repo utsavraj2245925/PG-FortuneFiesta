@@ -36,7 +36,8 @@ io.on('connection', (socket) => {
 });
 
 // MongoDB + Start
-mongoose.connect(process.env.MONGO_URI || "mongodb://127.0.0.1:27017/diwali_lucky_draw")
+const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/diwali_lucky_draw";
+mongoose.connect(mongoUri)
   .then(() => {
     console.log('MongoDB connected');
     server.listen(process.env.PORT || 5000, () =>
