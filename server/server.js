@@ -38,12 +38,16 @@ app.get('/', (req, res) => {
   });
 });
 
+// Auth route available immediately without waiting for DB
+app.use('/api/auth', require('./routes/auth'));
+
 // Connect to MongoDB with caching for serverless
 let isConnected = false;
 async function connectDB() {
   if (isConnected && mongoose.connection.readyState === 1) return;
   try {
     const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/diwali_lucky_draw";
+    if (!mongoUri) return;
     const conn = await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 });
     isConnected = conn.connections[0].readyState === 1;
     console.log('MongoDB connected');
@@ -53,7 +57,7 @@ async function connectDB() {
 }
 connectDB();
 
-// Middleware to ensure DB connection on serverless invocations
+// Middleware to ensure DB connection on serverless database queries
 app.use(async (req, res, next) => {
   if (!isConnected || mongoose.connection.readyState !== 1) {
     await connectDB();
@@ -61,8 +65,7 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
+// Business routes
 app.use('/api/employees', require('./routes/employees'));
 app.use('/api/prizes', require('./routes/prizes'));
 app.use('/api/cards', require('./routes/cards'));
@@ -75,12 +78,13 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => console.log('Client disconnected:', socket.id));
 });
 
-// Start server locally (outside Vercel)
-if (!process.env.VERCEL) {
+// Only listen on a port if executed directly (e.g. `node server.js` locally)
+// In Vercel serverless, do NOT call server.listen() to prevent EADDRINUSE crashes!
+if (require.main === module && !process.env.VERCEL) {
   server.listen(process.env.PORT || 5000, () =>
     console.log(`Server running on port ${process.env.PORT || 5000}`)
   );
 }
 
-// Export Express app for Vercel Serverless Function
+// Export Express app as request handler for Vercel Serverless
 module.exports = app;
