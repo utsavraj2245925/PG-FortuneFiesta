@@ -29,6 +29,7 @@ import RouletteWheel from '../components/RouletteWheel';
 
 const LOGO_PG = 'https://cms-complaint-avidence.s3.eu-north-1.amazonaws.com/pg-logo-Photoroom.png';
 const LOGO_ONLY = 'https://cms-complaint-avidence.s3.eu-north-1.amazonaws.com/pg-logo-Photoroom+(1).png';
+const LOGO_FULL = '/pg-full-logo.png';
 
 const GROUP_LABELS = { 1: 'Group A', 2: 'Group B', 3: 'Group C' };
 const GROUP_COLORS = { 1: '#3b82f6', 2: '#8b5cf6', 3: '#10b981' };
@@ -2092,22 +2093,293 @@ export default function LiveDraw() {
                 )}
               </AnimatePresence>
 
-              {/* Not started */}
+              {/* Not started - Grand Welcome Hero Stage */}
               {!gameStarted && (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <img src={LOGO_ONLY} alt="PG" style={{ height: 80, objectFit: 'contain', marginBottom: 12, opacity: 0.9 }} />
-                  <h2 style={{ fontSize: 22, color: '#C8102E', fontFamily: 'Georgia, serif', margin: 0 }}>
-                    Waiting for Game to Start...
-                  </h2>
-                  <p style={{ color: '#888', marginTop: 4, fontSize: 14 }}>
-                    Admin will begin the PG Fortune Fiesta Lucky Draw shortly.
-                  </p>
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 14 }}>
-                    {['🪔', '✨', '🎊', '✨', '🪔'].map((e, i) => (
-                      <span key={i} style={{ fontSize: 26 }}>{e}</span>
-                    ))}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 0.7, ease: 'easeOut' }}
+                  style={{
+                    width: '100%',
+                    maxWidth: 880,
+                    background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 250, 244, 0.96) 60%, rgba(255, 243, 235, 0.94) 100%)',
+                    borderRadius: 26,
+                    border: '2.5px solid #D4AF37',
+                    boxShadow: '0 24px 65px rgba(200, 16, 46, 0.16), 0 4px 18px rgba(0, 0, 0, 0.05), inset 0 0 20px rgba(255, 215, 0, 0.12)',
+                    padding: '26px 36px',
+                    textAlign: 'center',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Top Golden Foil Shimmer Accent */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 4,
+                      background: 'linear-gradient(90deg, #D4AF37 0%, #FFD700 50%, #D4AF37 100%)',
+                      boxShadow: '0 0 12px rgba(255, 215, 0, 0.8)',
+                    }}
+                  />
+
+                  {/* Royal Top Event Pill */}
+                  <motion.div
+                    animate={{ opacity: [0.9, 1, 0.9] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      background: 'linear-gradient(90deg, #C8102E, #8B0000)',
+                      color: '#FFD700',
+                      padding: '5px 22px',
+                      borderRadius: 20,
+                      fontSize: 11.5,
+                      fontWeight: 900,
+                      letterSpacing: 1.5,
+                      textTransform: 'uppercase',
+                      boxShadow: '0 2px 10px rgba(200, 16, 46, 0.35)',
+                      marginBottom: 14,
+                      border: '1px solid #FFD700',
+                    }}
+                  >
+                    <Crown size={14} style={{ color: '#FFD700' }} />
+                    <span>PG GROUP ANNUAL FESTIVE CELEBRATION 2026</span>
+                    <Crown size={14} style={{ color: '#FFD700' }} />
+                  </motion.div>
+
+                  {/* Official PG Full Logo Medallion (Uploaded with red crest + black PG) */}
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+                    <motion.div
+                      animate={{ y: [-3, 3, -3] }}
+                      transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: '#ffffff',
+                        padding: '10px 34px',
+                        borderRadius: 18,
+                        boxShadow: '0 10px 30px rgba(200, 16, 46, 0.14), 0 0 24px rgba(212, 175, 55, 0.28)',
+                        border: '2px solid #D4AF37',
+                      }}
+                    >
+                      <img
+                        src={LOGO_FULL}
+                        alt="PG Logo"
+                        style={{
+                          height: 64,
+                          objectFit: 'contain',
+                          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))',
+                        }}
+                      />
+                    </motion.div>
                   </div>
-                </div>
+
+                  {/* Grand Headline */}
+                  <h1
+                    style={{
+                      fontSize: 'clamp(26px, 3vw, 36px)',
+                      fontWeight: 950,
+                      color: '#8B0000',
+                      fontFamily: 'Georgia, serif',
+                      margin: '0 0 4px',
+                      letterSpacing: 1,
+                      textShadow: '0 2px 8px rgba(200, 16, 46, 0.2)',
+                    }}
+                  >
+                    PG FORTUNE FIESTA 2026
+                  </h1>
+
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: '#666',
+                      letterSpacing: 0.8,
+                      marginBottom: 20,
+                    }}
+                  >
+                    ✨ Grand Diwali Lucky Draw & Honored VIP Guest Car Ceremony ✨
+                  </div>
+
+                  {/* 3 Executive Feature Cards */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: 14,
+                      marginTop: 6,
+                      marginBottom: 20,
+                      textAlign: 'left',
+                    }}
+                  >
+                    {/* Tile 1 */}
+                    <div
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(200, 16, 46, 0.06) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                        border: '1.5px solid rgba(200, 16, 46, 0.25)',
+                        borderRadius: 16,
+                        padding: '12px 16px',
+                        boxShadow: '0 4px 14px rgba(200, 16, 46, 0.08)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            background: '#C8102E',
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 8px rgba(200,16,46,0.3)',
+                          }}
+                        >
+                          <Trophy size={16} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 900, color: '#C8102E', letterSpacing: 0.5 }}>
+                            9 EMPLOYEE ROUNDS
+                          </div>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: '#777' }}>
+                            Rounds 1A to 3C
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#444', fontWeight: 600, lineHeight: 1.35, marginTop: 4 }}>
+                        Groups A, B & C • Bumper Festive Prizes & Shuffling Reels
+                      </div>
+                    </div>
+
+                    {/* Tile 2 */}
+                    <div
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(74, 21, 75, 0.08) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                        border: '1.5px solid rgba(74, 21, 75, 0.3)',
+                        borderRadius: 16,
+                        padding: '12px 16px',
+                        boxShadow: '0 4px 14px rgba(74, 21, 75, 0.08)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            background: '#4A154B',
+                            color: '#FFD700',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 8px rgba(74, 21, 75, 0.3)',
+                          }}
+                        >
+                          <Car size={16} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 900, color: '#4A154B', letterSpacing: 0.5 }}>
+                            VIP GUEST ROULETTE
+                          </div>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: '#777' }}>
+                            Grand Finale
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#444', fontWeight: 600, lineHeight: 1.35, marginTop: 4 }}>
+                        Live 30s Casino Roulette • 1 Honored VIP Guest Car Winner
+                      </div>
+                    </div>
+
+                    {/* Tile 3 */}
+                    <div
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                        border: '1.5px solid rgba(16, 185, 129, 0.3)',
+                        borderRadius: 16,
+                        padding: '12px 16px',
+                        boxShadow: '0 4px 14px rgba(16, 185, 129, 0.08)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            background: '#059669',
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+                          }}
+                        >
+                          <Sparkles size={16} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 900, color: '#059669', letterSpacing: 0.5 }}>
+                            728 PARTICIPANTS
+                          </div>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: '#777' }}>
+                            100% Automated & Fair
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#444', fontWeight: 600, lineHeight: 1.35, marginTop: 4 }}>
+                        Real-Time Random Draw • Live Audience Stage Presentation
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stage Readiness Indicator */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                    <motion.div
+                      animate={{ scale: [1, 1.025, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        background: 'linear-gradient(90deg, #fff0f0 0%, #fffbf0 50%, #fff0f0 100%)',
+                        border: '2px solid #C8102E',
+                        padding: '8px 26px',
+                        borderRadius: 30,
+                        boxShadow: '0 4px 16px rgba(200, 16, 46, 0.18)',
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          width: 10,
+                          height: 10,
+                          borderRadius: '50%',
+                          background: '#52c41a',
+                          boxShadow: '0 0 10px #52c41a',
+                        }}
+                      />
+                      <span style={{ fontSize: 13, fontWeight: 900, color: '#C8102E', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                        LIVE AUDIENCE STAGE • READY FOR GRAND COMMENCEMENT
+                      </span>
+                    </motion.div>
+
+                    <div style={{ fontSize: 12.5, color: '#777', fontWeight: 600, letterSpacing: 0.5 }}>
+                      Admin will initiate Round 1A shortly • Wishing Everyone A Prosperous Diwali 2026! 🪔
+                    </div>
+                  </div>
+                </motion.div>
               )}
 
               {/* Completed */}
