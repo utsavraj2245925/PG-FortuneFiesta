@@ -365,28 +365,27 @@ export function playGuestCountdownBeep() {
   if (isGlobalMuted) return;
   try {
     resumeAudio();
+    // Stop all background audio (squid game music) immediately: only clock sound during final 10s countdown
     safeStopAudio(squidGameAudio);
     squidGameAudio = null;
 
-    countdownBeepAudio = new Audio('/guest_countdown_beep.aac');
+    if (countdownBeepAudio) {
+      safeStopAudio(countdownBeepAudio);
+      countdownBeepAudio = null;
+    }
+
+    countdownBeepAudio = new Audio('/guest_clock_countdown.mp3');
     countdownBeepAudio.volume = 1.0;
     activeAudios.add(countdownBeepAudio);
 
     const playPromise = countdownBeepAudio.play();
     if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        try {
-          if (isGlobalMuted) return;
-          const fallback = new Audio('/guest_countdown_beep.mp3');
-          fallback.volume = 1.0;
-          activeAudios.add(fallback);
-          fallback.play().catch(() => {});
-          countdownBeepAudio = fallback;
-        } catch {}
+      playPromise.catch((e) => {
+        console.warn('Clock countdown sound deferred:', e);
       });
     }
   } catch (err) {
-    console.warn('Error playing countdown beep:', err);
+    console.warn('Error playing countdown clock sound:', err);
   }
 }
 
@@ -398,11 +397,11 @@ export function stopGuestCountdownBeep() {
 export function preloadGuestSounds() {
   try {
     if (!countdownBeepAudio) {
-      countdownBeepAudio = new Audio('/guest_countdown_beep.aac');
+      countdownBeepAudio = new Audio('/guest_clock_countdown.mp3');
       countdownBeepAudio.load();
     }
     if (!winnerExplosionAudio) {
-      winnerExplosionAudio = new Audio('/winner_explosion.aac');
+      winnerExplosionAudio = new Audio('/winner_explosion.mp3');
       winnerExplosionAudio.load();
     }
   } catch {}

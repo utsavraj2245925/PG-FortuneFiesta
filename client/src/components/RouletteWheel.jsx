@@ -223,6 +223,13 @@ export default function RouletteWheel({
     const pocketCenterAngle = (winIdx + 0.5) * segmentAngle;
     const finalPocketAngle = (finalWheelTarget + pocketCenterAngle) % 360;
 
+    // ── NATURAL CONTINUOUS BALL TRAJECTORY ──
+    // Total ball revolutions in counter-clockwise direction (negative angle)
+    const totalBaseSpins = -19 * 360;
+    const normTarget = ((finalPocketAngle % 360) + 360) % 360;
+    // Exactly lands on finalPocketAngle at progress = 1:
+    const targetBallAngle = totalBaseSpins - ((360 - normTarget) % 360);
+
     let lastClickTime = 0;
 
     const animate = () => {
@@ -238,34 +245,43 @@ export default function RouletteWheel({
 
       const curCenterR = centerRRef.current;
       const curPocketR = pocketRadiusRef.current;
+      const outerR = curCenterR * 0.93;
 
-      // Ball physics:
-      // In first 20s (progress < 0.67), ball spins rapidly in counter direction around outer rim
-      // In last 10s (progress >= 0.67), ball spirals inward and locks into finalPocketAngle
-      if (progress < 0.67) {
-        const ballSpeedProgress = progress / 0.67;
-        const currentBallAngle = -16 * 360 * Math.pow(ballSpeedProgress, 1.2);
-        setBallAngle(currentBallAngle % 360);
-        setBallRadius(curCenterR * 0.93);
-      } else {
-        const settleProgress = (progress - 0.67) / 0.33; // 0 to 1
-        const easedSettle = 1 - Math.pow(1 - settleProgress, 2.5);
+      // ── NATURAL CONTINUOUS BALL MOTION (Strictly Monotonic Deceleration) ──
+      // The ball moves fast initially, gradually decreases speed continuously,
+      // never turns back, rolls smoothly down into the pocket ring, and comes to a gentle stop.
+      // Cubic-exponential friction deceleration curve:
+      const easeBall = 1 - Math.pow(1 - progress, 3.25);
+      const baseBallAngle = easeBall * targetBallAngle;
 
-        // Gradually interpolate ball angle toward the exact winning pocket
-        const startDropAngle = -16 * 360;
-        const targetRotations = Math.floor(startDropAngle / 360) * 360;
-        const targetAngle = targetRotations + finalPocketAngle;
-        const currentAngle = startDropAngle + easedSettle * (targetAngle - startDropAngle);
+      // Ball Radius Physics:
+      // 0 - 18s (progress < 0.60): held securely on outer rim by centrifugal force
+      // 18s - 26s (0.60 <= progress < 0.88): smoothly spirals down from outer rim into pocket ring
+      // 26s - 30s (progress >= 0.88): rolls smoothly along pocket ring into winning pocket
+      let currentR = outerR;
+      if (progress >= 0.60 && progress < 0.88) {
+        const dropRatio = (progress - 0.60) / 0.28; // 0 to 1
+        // Smooth Hermite S-curve for inward spiral
+        const smoothDrop = dropRatio * dropRatio * (3 - 2 * dropRatio);
+        currentR = outerR - smoothDrop * (outerR - curPocketR);
+      } else if (progress >= 0.88) {
+        currentR = curPocketR;
+      }
+      setBallRadius(currentR);
 
-        setBallAngle(currentAngle % 360);
-
-        // Interpolate radius from outer rim to pocket
-        const currentR = (curCenterR * 0.93) - easedSettle * ((curCenterR * 0.93) - curPocketR);
-        setBallRadius(currentR);
+      // Subtle realistic fret settle in final 2.5 seconds (micro-dampened bounce < 1.2 deg)
+      let bounceOffset = 0;
+      if (progress >= 0.91 && progress < 1.0) {
+        const settleRatio = (progress - 0.91) / 0.09; // 0 to 1
+        const damp = Math.pow(1 - settleRatio, 2);
+        bounceOffset = Math.sin(settleRatio * Math.PI * 4) * 1.2 * damp;
       }
 
-      // Ball clatter sound during spin
-      if (soundEnabled && elapsed - lastClickTime > (progress < 0.7 ? 130 : 320) && progress < 0.88) {
+      const calculatedAngle = ((baseBallAngle + bounceOffset) % 360 + 360) % 360;
+      setBallAngle(calculatedAngle);
+
+      // Ball clatter sound only in first 19 seconds, silenced when countdown clock begins
+      if (soundEnabled && progress < 0.64 && elapsed - lastClickTime > (progress < 0.4 ? 140 : 320)) {
         playRouletteBallClick();
         lastClickTime = elapsed;
       }
@@ -468,15 +484,15 @@ export default function RouletteWheel({
         />
       )}
 
-      {/* ── CENTER GOLDEN TURRET SPINDLE (Luxury 3D Spindle with Diamond Accents) ── */}
+      {/* ── CENTER LUXURY GOLDEN TURRET SPINDLE WITH PG LOGO ── */}
       <div
         style={{
           position: 'absolute',
-          width: isWinnerRevealed ? 88 : 102,
-          height: isWinnerRevealed ? 88 : 102,
+          width: isWinnerRevealed ? 96 : 112,
+          height: isWinnerRevealed ? 96 : 112,
           borderRadius: '50%',
-          background: 'radial-gradient(circle at 30% 30%, #FFF8DC 0%, #FFD700 45%, #B8860B 80%, #5a4205 100%)',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.65), inset 0 2px 6px rgba(255,255,255,0.85)',
+          background: 'radial-gradient(circle at 32% 28%, #FFFDE6 0%, #FFE57F 22%, #FFD700 48%, #C69214 78%, #5C4003 100%)',
+          boxShadow: '0 10px 28px rgba(0,0,0,0.75), inset 0 3px 8px rgba(255,255,255,0.9), inset 0 -4px 10px rgba(50,32,1,0.85)',
           border: '3px solid #FFF8DC',
           display: 'flex',
           alignItems: 'center',
@@ -484,25 +500,69 @@ export default function RouletteWheel({
           zIndex: 30,
         }}
       >
-        <div style={{ position: 'absolute', width: isWinnerRevealed ? 62 : 76, height: 7, background: '#FFD700', borderRadius: 4, boxShadow: '0 2px 4px rgba(0,0,0,0.4)' }} />
-        <div style={{ position: 'absolute', height: isWinnerRevealed ? 62 : 76, width: 7, background: '#FFD700', borderRadius: 4, boxShadow: '0 2px 4px rgba(0,0,0,0.4)' }} />
+        {/* 4-Arm Polished Brass Spinner Handles */}
         <div
           style={{
-            width: isWinnerRevealed ? 34 : 40,
-            height: isWinnerRevealed ? 34 : 40,
+            position: 'absolute',
+            width: isWinnerRevealed ? 76 : 90,
+            height: 9,
+            background: 'linear-gradient(180deg, #FFFDE6 0%, #FFD700 40%, #B8860B 80%, #704F00 100%)',
+            borderRadius: 5,
+            boxShadow: '0 3px 6px rgba(0,0,0,0.55), inset 0 1px 2px rgba(255,255,255,0.7)',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            height: isWinnerRevealed ? 76 : 90,
+            width: 9,
+            background: 'linear-gradient(90deg, #FFFDE6 0%, #FFD700 40%, #B8860B 80%, #704F00 100%)',
+            borderRadius: 5,
+            boxShadow: '0 3px 6px rgba(0,0,0,0.55), inset 0 1px 2px rgba(255,255,255,0.7)',
+          }}
+        />
+
+        {/* Center Medallion: Elegant Polished Gold Ring with Rounded Red PG Logo on Crisp White */}
+        <div
+          style={{
+            position: 'relative',
+            width: isWinnerRevealed ? 46 : 54,
+            height: isWinnerRevealed ? 46 : 54,
             borderRadius: '50%',
-            background: 'radial-gradient(circle at 35% 35%, #7B1FA2 0%, #4A148C 60%, #1A002C 100%)',
-            border: '2.5px solid #FFD700',
+            background: 'linear-gradient(135deg, #FFFDE6 0%, #FFD700 35%, #D4AF37 70%, #996515 100%)',
+            border: '2px solid #FFF8DC',
+            padding: 2.5,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#FFD700',
-            fontSize: isWinnerRevealed ? 16 : 19,
             zIndex: 32,
-            boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.4), 0 2px 6px rgba(0,0,0,0.5)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.6), inset 0 1px 3px rgba(255,255,255,0.85)',
           }}
         >
-          👑
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              background: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.18)',
+            }}
+          >
+            <img
+              src="/pg-round-logo.png"
+              alt="PG Logo"
+              style={{
+                width: '88%',
+                height: '88%',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>
