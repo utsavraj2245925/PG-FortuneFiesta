@@ -20,6 +20,8 @@ import {
   stopAllAudio,
   playClockTick,
   setAudioMuted,
+  setupAudioAutoUnlock,
+  isEmpSongPending,
 } from '../hooks/useAudio';
 import confetti from 'canvas-confetti';
 import { Trophy, Crown, Gift, Sparkles, Award, Car, Clock, Star, Flame } from 'lucide-react';
@@ -60,13 +62,13 @@ function fireConfetti() {
   })();
 }
 
-// 20-Second High-Octane Slot Drum Animation with Authentic Group Codes (Supports 8 & 9 Digits) & Suspense Deceleration
+// 20-Second Realistic Multi-Phase Slot Drum Animation with Authentic Group Prefixes & Staggered Suspense
 function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEnabled = true, onCountdownZero }) {
   // Real employee code pool for current group
   const samplePool = React.useMemo(() => {
     if (sampleCodes && sampleCodes.length > 0) return sampleCodes;
     if (currentGroup === 3) {
-      return ['VON400163', 'CMS400001', 'VON100453', 'CMS100010', 'RUD400874', 'PG400098', 'PT200350', 'PG400689'];
+      return ['VON400163', 'CMS400001', 'VON100453', 'CMS100010', 'RUD400874', 'PG400098', 'PT200350', 'PG400689', 'SUP400112'];
     } else if (currentGroup === 2) {
       return ['PT200893', 'PT200716', 'PT200969', 'PG400321', 'PT200450', 'PG400512', 'PT200611', 'PG400780'];
     } else {
@@ -74,28 +76,60 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
     }
   }, [sampleCodes, currentGroup]);
 
-  // Extract all distinct prefixes present in this group (e.g. PG, PT, VON, CMS, RUD)
-  const groupPrefixes = React.useMemo(() => {
+  // Authentic prefix candidate pools by group
+  // Group 1: PG, PT
+  // Group 2: PT, PG
+  // Group 3: PT, PG, VON, RUD, CMS, SUP, BVG, DIM
+  const allGroupPrefixes = React.useMemo(() => {
     const set = new Set();
+    if (currentGroup === 1) {
+      set.add('PG'); set.add('PT');
+    } else if (currentGroup === 2) {
+      set.add('PT'); set.add('PG');
+    } else {
+      ['PT', 'PG', 'VON', 'RUD', 'CMS', 'SUP', 'BVG', 'DIM'].forEach(p => set.add(p));
+    }
     samplePool.forEach(c => {
       if (c) {
-        const pref = c.replace(/[0-9]/g, '');
-        if (pref) set.add(pref.toUpperCase());
+        const p = c.replace(/[0-9]/g, '');
+        if (p) set.add(p.toUpperCase());
       }
     });
-    if (set.size === 0) set.add(currentGroup === 3 ? 'VON' : 'PG');
     return Array.from(set);
   }, [samplePool, currentGroup]);
 
-  // Determine standard length: if group 3 or samplePool has 9-digit codes or winnerCode is 9 chars -> 9, else 8
-  const defaultLen = React.useMemo(() => {
-    if (winnerCode && winnerCode.length) return winnerCode.length;
-    if (samplePool.some(c => c && c.length >= 9) || currentGroup === 3) return 9;
-    return 8;
+  // Determine target code & layout
+  const targetCode = React.useMemo(() => {
+    if (winnerCode) return winnerCode;
+    return samplePool[0] || (currentGroup === 3 ? 'VON400163' : 'PG400874');
   }, [winnerCode, samplePool, currentGroup]);
 
-  const [chars, setChars] = useState(() => Array(defaultLen).fill('?'));
-  const [isFinale, setIsFinale] = useState(false);
+  // Target prefix & target numeric digits
+  const { targetPref, targetDigits, targetLen, prefLen } = React.useMemo(() => {
+    const prefM = targetCode.match(/^[A-Za-z]+/);
+    const p = prefM ? prefM[0].toUpperCase() : (currentGroup === 3 ? 'VON' : 'PG');
+    const numM = targetCode.match(/[0-9]+$/);
+    const d = (numM ? numM[0] : '400874').padStart(6, '0').slice(-6);
+    return {
+      targetPref: p,
+      targetDigits: d,
+      targetLen: p.length + d.length,
+      prefLen: p.length,
+    };
+  }, [targetCode, currentGroup]);
+
+  // Prefix candidates with matching length to target (e.g. length 2 for PT/PG, or length 3 for VON/RUD/CMS)
+  const matchingPrefixes = React.useMemo(() => {
+    const matched = allGroupPrefixes.filter(p => p.length === prefLen);
+    return matched.length > 0 ? matched : (prefLen === 3 ? ['VON', 'RUD', 'CMS', 'SUP'] : ['PG', 'PT']);
+  }, [allGroupPrefixes, prefLen]);
+
+  const [chars, setChars] = useState(() => {
+    if (winnerCode) return winnerCode.split('');
+    return Array(targetLen).fill('?');
+  });
+
+  const [phaseStage, setPhaseStage] = useState('idle'); // 'turbo' | 'decelerating' | 'suspense' | 'locked'
   const [highlightIndices, setHighlightIndices] = useState([]);
   const animTimeoutRef = useRef(null);
   const timerIntervalRef = useRef(null);
@@ -108,20 +142,18 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
       if (winnerCode) {
         setChars(winnerCode.split(''));
       } else {
-        setChars(Array(defaultLen).fill('?'));
+        setChars(Array(targetLen).fill('?'));
       }
-      setIsFinale(false);
+      setPhaseStage('idle');
       setHighlightIndices([]);
     }
-  }, [spinning, winnerCode, defaultLen]);
+  }, [spinning, winnerCode, targetLen]);
 
   useEffect(() => {
     if (!spinning) {
       clearTimeout(animTimeoutRef.current);
       clearInterval(timerIntervalRef.current);
-      if (winnerCode) {
-        setChars(winnerCode.split(''));
-      }
+      if (winnerCode) setChars(winnerCode.split(''));
       return;
     }
 
@@ -129,27 +161,19 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
     const startT = Date.now();
     hasExplodedRef.current = false;
     lastTickSecRef.current = null;
-    setIsFinale(false);
+    setPhaseStage('turbo');
     setHighlightIndices([]);
     preloadEmpSounds();
 
-    // 100ms ticker for countdown beeps (in last 5 seconds) and audio explosion at 0s
+    // 100ms interval for clock countdown sound ticks & final explosion trigger
     timerIntervalRef.current = setInterval(() => {
       const elapsed = Date.now() - startT;
       const remainingSec = Math.max(0, Math.ceil((duration - elapsed) / 1000));
 
-      // Trigger finale suspense state at 5s remaining
-      if (remainingSec <= 5) {
-        setIsFinale(true);
-      }
-
-      // Audible countdown beep at remaining seconds 5, 4, 3, 2, 1
+      // In last 5 seconds: mechanical grandfather clock tick pulse
       if (remainingSec <= 5 && remainingSec > 0 && remainingSec !== lastTickSecRef.current) {
         lastTickSecRef.current = remainingSec;
         if (soundEnabled) {
-          if (remainingSec === 5) {
-            playGuestCountdownBeep();
-          }
           playClockTick(remainingSec);
         }
       }
@@ -157,7 +181,6 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
       // Exactly at 20s (remainingSec === 0): Stop song, explosion fanfare!
       if (remainingSec === 0 && !hasExplodedRef.current) {
         hasExplodedRef.current = true;
-        stopGuestCountdownBeep();
         stopEmpSong();
         if (soundEnabled) {
           playWinnerExplosion();
@@ -166,104 +189,151 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
       }
     }, 100);
 
-    // Current candidate code being manipulated
-    let activeCode = (winnerCode || samplePool[Math.floor(Math.random() * samplePool.length)] || 'PG400874');
+    // Dynamic state trackers during the 20s spin
+    let currentPref = matchingPrefixes[Math.floor(Math.random() * matchingPrefixes.length)] || targetPref;
+    let currentDigitsArr = Array.from({ length: 6 }, () => String(Math.floor(Math.random() * 10)));
+    let lockedSlots = new Set(); // which slot indices have been locked
 
-    // 3-Phase Animation Loop
+    // 3-PHASE ANIMATION LOOP:
+    // Phase 1: 0s - 5s (remaining > 15s): Fast Turbo Spin (all numbers and prefix roll fast)
+    // Phase 2: 5s - 10s (15s >= remaining > 10s): Smooth Deceleration (rolling gets slower and slower)
+    // Phase 3: 10s - 20s (remaining <= 10s): Suspense Finale (very slow, random 1-in-6 numeric digit slow tumbling, prefix spin, progressive locking)
     const stepAnimation = () => {
       const elapsed = Date.now() - startT;
       const remainingSec = Math.max(0, Math.ceil((duration - elapsed) / 1000));
 
       if (elapsed >= duration || remainingSec === 0) {
-        if (winnerCode) {
-          setChars(winnerCode.split(''));
-        }
-        setHighlightIndices([]);
+        setChars((targetPref + targetDigits).split(''));
+        setPhaseStage('locked');
+        setHighlightIndices(Array.from({ length: targetLen }, (_, i) => i));
         return;
       }
 
-      // ── PHASE 1: FULL-SPEED TURBO SPIN (0s - 11s, remaining > 9s) ──
-      if (remainingSec > 9) {
-        const rCode = samplePool[Math.floor(Math.random() * samplePool.length)];
-        if (rCode) {
-          activeCode = rCode;
-          const arr = rCode.split('');
-          const prefLen = rCode.replace(/[0-9]/g, '').length;
-          // Randomize numerical digits rapidly
-          for (let k = prefLen; k < arr.length; k++) {
-            arr[k] = String(Math.floor(Math.random() * 10));
-          }
-          setChars(arr);
+      // ── PHASE 1: FIRST 5 SECONDS (0s - 5s, remaining > 15s) ──
+      // "from 5 sec spins all digits fastly in his box all numbers rolls fast"
+      if (remainingSec > 15) {
+        setPhaseStage('turbo');
+        // All 6 numerical digits tumble rapidly every frame
+        for (let k = 0; k < 6; k++) {
+          currentDigitsArr[k] = String(Math.floor(Math.random() * 10));
         }
+        // Prefix rolls rapidly through group candidates
+        if (Math.random() < 0.45) {
+          currentPref = matchingPrefixes[Math.floor(Math.random() * matchingPrefixes.length)];
+        }
+        setChars((currentPref + currentDigitsArr.join('')).split(''));
         setHighlightIndices([]);
         animTimeoutRef.current = setTimeout(stepAnimation, 38);
       }
-      // ── PHASE 2: VISIBLE DECELERATION (11s - 15s, remaining 9s down to > 5s) ──
-      else if (remainingSec > 5) {
-        const rCode = samplePool[Math.floor(Math.random() * samplePool.length)];
-        if (rCode) {
-          activeCode = rCode;
-          setChars(rCode.split(''));
+
+      // ── PHASE 2: 5s TO 10s (15s >= remaining > 10s) ──
+      // "and then change value being moment slow and slow according to time"
+      else if (remainingSec > 10) {
+        setPhaseStage('decelerating');
+        // Decelerate smoothly from 45ms to 320ms based on momentum
+        const progress = Math.max(0, Math.min(1, (elapsed - 5000) / 5000));
+        const delay = Math.round(45 + Math.pow(progress, 1.7) * 275);
+
+        // All digits still rolling, but with visibly expanding tempo
+        for (let k = 0; k < 6; k++) {
+          if (Math.random() < 0.85) {
+            currentDigitsArr[k] = String(Math.floor(Math.random() * 10));
+          }
         }
+        if (Math.random() < 0.35) {
+          currentPref = matchingPrefixes[Math.floor(Math.random() * matchingPrefixes.length)];
+        }
+        setChars((currentPref + currentDigitsArr.join('')).split(''));
         setHighlightIndices([]);
-        // Decelerate smoothly from 60ms to 180ms
-        const progress = Math.max(0, Math.min(1, (15000 - elapsed) / 4000));
-        const delay = Math.round(180 - progress * 120);
-        animTimeoutRef.current = setTimeout(stepAnimation, Math.max(60, delay));
+        animTimeoutRef.current = setTimeout(stepAnimation, delay);
       }
-      // ── PHASE 3: SUSPENSE FINALE (Last 5 seconds! 15s - 20s) ──
-      // Slowly morph random individual digits: second-last, last, 4th, prefix, etc.
+
+      // ── PHASE 3: LAST 10 SECONDS (10s - 20s, remaining <= 10s) ──
+      // "and at the last 10 seconds it's being slow , slow all from the 9 digits 
+      //  all from the 6 numericals digits being slow but randomely spin slow 1 in any of 6 number digits 
+      //  and the employe character also spins - PT/PG/VON/RUD.. its character also spinning accordingly to his group"
       else {
-        let charsArr = activeCode.split('');
-        const prefMatch = activeCode.match(/^[A-Za-z]+/);
-        const prefLen = prefMatch ? prefMatch[0].length : 2;
+        setPhaseStage('suspense');
 
-        const morphType = Math.floor(Math.random() * 5);
-        let changedIdxs = [];
+        // Progressive locking milestones in final 5 seconds:
+        if (remainingSec <= 5) {
+          // Lock prefix at <= 5s
+          currentPref = targetPref;
+          for (let p = 0; p < prefLen; p++) lockedSlots.add(p);
+        }
+        if (remainingSec <= 4) {
+          // Lock digit 1
+          currentDigitsArr[0] = targetDigits[0];
+          lockedSlots.add(prefLen + 0);
+        }
+        if (remainingSec <= 3) {
+          // Lock digit 2
+          currentDigitsArr[1] = targetDigits[1];
+          lockedSlots.add(prefLen + 1);
+        }
+        if (remainingSec <= 2) {
+          // Lock digit 3 & 4
+          currentDigitsArr[2] = targetDigits[2];
+          currentDigitsArr[3] = targetDigits[3];
+          lockedSlots.add(prefLen + 2);
+          lockedSlots.add(prefLen + 3);
+        }
+        if (remainingSec <= 1) {
+          // Lock digit 5
+          currentDigitsArr[4] = targetDigits[4];
+          lockedSlots.add(prefLen + 4);
+        }
 
-        if (morphType === 0) {
-          // Morph last digit
-          const lastIdx = charsArr.length - 1;
-          charsArr[lastIdx] = String(Math.floor(Math.random() * 10));
-          changedIdxs = [lastIdx];
-        } else if (morphType === 1 && charsArr.length >= 2) {
-          // Morph second-last digit
-          const secLastIdx = charsArr.length - 2;
-          charsArr[secLastIdx] = String(Math.floor(Math.random() * 10));
-          changedIdxs = [secLastIdx];
-        } else if (morphType === 2 && charsArr.length >= 5) {
-          // Morph 4th or 5th character
-          const targetIdx = prefLen + 1;
-          charsArr[targetIdx] = String(Math.floor(Math.random() * 10));
-          changedIdxs = [targetIdx];
-        } else if (morphType === 3 && groupPrefixes.length > 1) {
-          // Morph prefix (e.g. PG <-> VON <-> RUD <-> PT <-> CMS)
-          const newPref = groupPrefixes[Math.floor(Math.random() * groupPrefixes.length)];
-          const numericPart = charsArr.slice(prefLen).join('');
-          charsArr = (newPref + numericPart).split('');
-          changedIdxs = Array.from({ length: newPref.length }, (_, k) => k);
-        } else {
-          // Morph to another real candidate from this group
-          const nextRealCode = samplePool[Math.floor(Math.random() * samplePool.length)];
-          if (nextRealCode) {
-            charsArr = nextRealCode.split('');
-            changedIdxs = [charsArr.length - 1, charsArr.length - 2];
+        // Find available unlocked numeric digits among the 6 numeric positions
+        const unlockedNumericOffsets = [];
+        for (let k = 0; k < 6; k++) {
+          if (!lockedSlots.has(prefLen + k)) {
+            unlockedNumericOffsets.push(k);
           }
         }
 
-        activeCode = charsArr.join('');
-        setChars(charsArr);
-        setHighlightIndices(changedIdxs);
+        let activeChangedIndices = [];
 
-        // Progressively slower cadence across the last 5 seconds:
-        const delayBySec = {
-          5: 250,
-          4: 360,
-          3: 500,
-          2: 680,
-          1: 900,
+        // Randomly spin slow 1 in any of the unlocked numeric digits:
+        if (unlockedNumericOffsets.length > 0) {
+          const chosenOffset = unlockedNumericOffsets[Math.floor(Math.random() * unlockedNumericOffsets.length)];
+          const slotIndex = prefLen + chosenOffset;
+          // Change this 1 digit slowly
+          if (remainingSec <= 1 && chosenOffset === 5) {
+            // Very last digit near the end: alternate between close candidates
+            const targetVal = parseInt(targetDigits[5], 10);
+            const closeOffsets = [-1, 1, 2, -2];
+            const delta = closeOffsets[Math.floor(Math.random() * closeOffsets.length)];
+            currentDigitsArr[chosenOffset] = String((targetVal + delta + 10) % 10);
+          } else {
+            currentDigitsArr[chosenOffset] = String(Math.floor(Math.random() * 10));
+          }
+          activeChangedIndices.push(slotIndex);
+        }
+
+        // Employee character / prefix also spins slowly before locking:
+        if (remainingSec > 5 && Math.random() < 0.45 && matchingPrefixes.length > 1) {
+          currentPref = matchingPrefixes[Math.floor(Math.random() * matchingPrefixes.length)];
+          for (let p = 0; p < prefLen; p++) activeChangedIndices.push(p);
+        }
+
+        setChars((currentPref + currentDigitsArr.join('')).split(''));
+        setHighlightIndices(activeChangedIndices);
+
+        // Suspense cadence: slow and increasingly dramatic
+        const suspenseDelays = {
+          10: 420,
+          9: 460,
+          8: 520,
+          7: 580,
+          6: 650,
+          5: 720,
+          4: 800,
+          3: 880,
+          2: 950,
+          1: 980,
         };
-        const curDelay = delayBySec[remainingSec] || 450;
+        const curDelay = suspenseDelays[remainingSec] || 600;
         animTimeoutRef.current = setTimeout(stepAnimation, curDelay);
       }
     };
@@ -274,14 +344,14 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
       clearTimeout(animTimeoutRef.current);
       clearInterval(timerIntervalRef.current);
     };
-  }, [spinning, winnerCode, samplePool, groupPrefixes, defaultLen, soundEnabled, onCountdownZero]);
+  }, [spinning, winnerCode, targetCode, targetPref, targetDigits, targetLen, prefLen, matchingPrefixes, soundEnabled, onCountdownZero]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-      {/* Suspense Banner — ZERO countdown numbers displayed! */}
+      {/* Dynamic Suspense Banner */}
       <div
         style={{
-          height: 42,
+          height: 44,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -289,15 +359,22 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
         }}
       >
         {spinning ? (
-          isFinale ? (
+          phaseStage === 'suspense' ? (
             <motion.div
-              animate={{ scale: [1, 1.05, 1], boxShadow: ['0 0 16px rgba(255,215,0,0.6)', '0 0 32px rgba(255,215,0,0.95)', '0 0 16px rgba(255,215,0,0.6)'] }}
+              animate={{
+                scale: [1, 1.05, 1],
+                boxShadow: [
+                  '0 0 16px rgba(255,215,0,0.6)',
+                  '0 0 32px rgba(255,215,0,0.95)',
+                  '0 0 16px rgba(255,215,0,0.6)',
+                ],
+              }}
               transition={{ duration: 0.6, repeat: Infinity }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                background: 'linear-gradient(90deg, #8b0000, #C8102E, #8b0000)',
+                background: 'linear-gradient(90deg, #8b0000 0%, #C8102E 50%, #8b0000 100%)',
                 padding: '6px 26px',
                 borderRadius: 24,
                 border: '2px solid #FFD700',
@@ -306,6 +383,25 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
               <span style={{ fontSize: 13, color: '#FFD700', fontWeight: 900, letterSpacing: 1.5, textTransform: 'uppercase' }}>
                 🔥 SUSPENSE FINALE • LOCKING WINNER 🔥
               </span>
+            </motion.div>
+          ) : phaseStage === 'decelerating' ? (
+            <motion.div
+              animate={{ opacity: [0.9, 1, 0.9], scale: [1, 1.02, 1] }}
+              transition={{ duration: 0.8, repeat: Infinity }}
+              style={{
+                fontSize: 13,
+                fontWeight: 800,
+                color: '#8b0000',
+                letterSpacing: 1.5,
+                background: '#fff3e0',
+                padding: '6px 24px',
+                borderRadius: 24,
+                border: '2px solid #ff9800',
+                boxShadow: '0 3px 12px rgba(255, 152, 0, 0.25)',
+                textTransform: 'uppercase',
+              }}
+            >
+              ⚡ DECELERATING MOMENTUM • TRACKING WINNER ⚡
             </motion.div>
           ) : (
             <motion.div
@@ -346,7 +442,54 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
         )}
       </div>
 
-      {/* Futuristic Slot Drum Reel for Employee Code (Supports both 8 and 9 digits) */}
+      {/* Reel Labels: PREFIX and 6 DIGITS */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          width: '100%',
+          maxWidth: chars.length >= 9 ? 560 : 530,
+          padding: '0 8px',
+          marginBottom: -4,
+        }}
+      >
+        <div style={{ display: 'flex', gap: 6 }}>
+          <span
+            style={{
+              fontSize: 10.5,
+              fontWeight: 900,
+              color: '#C8102E',
+              letterSpacing: 1.2,
+              background: 'rgba(200, 16, 46, 0.08)',
+              padding: '2px 8px',
+              borderRadius: 6,
+              border: '1px solid rgba(200, 16, 46, 0.2)',
+              textTransform: 'uppercase',
+            }}
+          >
+            COMPANY PREFIX ({prefLen})
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <span
+            style={{
+              fontSize: 10.5,
+              fontWeight: 900,
+              color: '#8b0000',
+              letterSpacing: 1.2,
+              background: 'rgba(212, 175, 55, 0.15)',
+              padding: '2px 8px',
+              borderRadius: 6,
+              border: '1px solid rgba(212, 175, 55, 0.35)',
+              textTransform: 'uppercase',
+            }}
+          >
+            NUMERIC DIGITS (6)
+          </span>
+        </div>
+      </div>
+
+      {/* Grand Slot Drum Capsule Container */}
       <div
         style={{
           display: 'flex',
@@ -354,7 +497,7 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
           justifyContent: 'center',
           alignItems: 'center',
           background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,248,242,0.95) 100%)',
-          padding: chars.length >= 9 ? '16px 22px' : '18px 28px',
+          padding: chars.length >= 9 ? '16px 20px' : '18px 26px',
           borderRadius: 22,
           boxShadow: '0 16px 45px rgba(200,16,46,0.18), 0 2px 8px rgba(0,0,0,0.06)',
           border: '3px solid #D4AF37',
@@ -362,47 +505,85 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
       >
         {chars.map((char, i) => {
           const isHighlight = highlightIndices.includes(i);
-          const isSuspenseDigit = (spinning && isFinale && (isHighlight || i >= chars.length - 2));
+          const isSuspenseDigit = spinning && phaseStage === 'suspense' && isHighlight;
+          const isLockedStage = phaseStage === 'locked';
+
           return (
             <motion.div
               key={i}
               animate={
                 spinning
                   ? isSuspenseDigit
-                    ? { y: [-3, 3, -3], scale: [1, 1.06, 1] }
-                    : { y: [-5, 5, -5], scale: [1, 1.02, 1] }
-                  : { y: 0, scale: [1, 1.04, 1] }
+                    ? { y: [-3, 3, -3], scale: [1, 1.08, 1] }
+                    : phaseStage === 'turbo'
+                    ? { y: [-4, 4, -4], scale: [1, 1.015, 1] }
+                    : { y: [-2, 2, -2], scale: [1, 1.01, 1] }
+                  : isLockedStage
+                  ? { y: [0, -4, 0], scale: [1, 1.05, 1] }
+                  : { y: 0, scale: 1 }
               }
               transition={
                 spinning
-                  ? { duration: isSuspenseDigit ? 0.22 : 0.1, repeat: Infinity, delay: i * 0.015 }
-                  : { duration: 0.4 }
+                  ? {
+                      duration: isSuspenseDigit ? 0.28 : phaseStage === 'turbo' ? 0.08 : 0.16,
+                      repeat: Infinity,
+                      delay: i * 0.02,
+                    }
+                  : { duration: 0.3 }
               }
               style={{
-                width: chars.length >= 9 ? 54 : 58,
-                height: chars.length >= 9 ? 78 : 82,
-                borderRadius: 12,
-                background: isSuspenseDigit
-                  ? 'linear-gradient(180deg, #A0001E 0%, #680000 100%)'
-                  : 'linear-gradient(180deg, #C8102E 0%, #8b0000 100%)',
+                width: chars.length >= 9 ? 54 : 60,
+                height: chars.length >= 9 ? 80 : 84,
+                borderRadius: 14,
+                background: isLockedStage
+                  ? 'linear-gradient(180deg, #D4AF37 0%, #B8860B 40%, #8A6508 100%)'
+                  : isSuspenseDigit
+                  ? 'linear-gradient(180deg, #7A0012 0%, #C8102E 40%, #8A0015 80%, #50000C 100%)'
+                  : 'linear-gradient(180deg, #990018 0%, #D61A3C 35%, #A0001E 75%, #680000 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: isSuspenseDigit
-                  ? '0 0 22px rgba(255,215,0,0.8), inset 0 2px 6px rgba(255,255,255,0.7)'
-                  : '0 8px 20px rgba(200,16,46,0.3), inset 0 2px 4px rgba(255,255,255,0.4)',
-                border: isSuspenseDigit ? '2.5px solid #FFD700' : '2px solid #FFD700',
-                filter: spinning && !isSuspenseDigit ? 'blur(0.3px)' : 'none',
+                boxShadow: isLockedStage
+                  ? '0 0 28px rgba(255,215,0,0.95), inset 0 3px 6px rgba(255,255,255,0.7), inset 0 -4px 6px rgba(0,0,0,0.4)'
+                  : isSuspenseDigit
+                  ? '0 0 26px rgba(255,215,0,0.95), inset 0 5px 8px rgba(255,255,255,0.6), inset 0 -5px 8px rgba(0,0,0,0.6)'
+                  : '0 8px 22px rgba(200,16,46,0.32), inset 0 4px 6px rgba(255,255,255,0.35), inset 0 -4px 6px rgba(0,0,0,0.45)',
+                border: isLockedStage
+                  ? '2.8px solid #FFFFFF'
+                  : isSuspenseDigit
+                  ? '2.8px solid #FFD700'
+                  : '2px solid #FFD700',
+                filter: spinning && phaseStage === 'turbo' ? 'blur(0.35px)' : 'none',
+                position: 'relative',
+                overflow: 'hidden',
               }}
             >
+              {/* Drum slot 3D gloss sheen */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '35%',
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 100%)',
+                  pointerEvents: 'none',
+                }}
+              />
+
               <span
                 style={{
-                  fontSize: chars.length >= 9 ? 36 : 39,
+                  fontSize: chars.length >= 9 ? 37 : 41,
                   fontWeight: 900,
-                  color: isSuspenseDigit ? '#FFD700' : '#fff',
-                  fontFamily: 'Impact, Arial Black, sans-serif',
+                  color: isLockedStage ? '#ffffff' : isSuspenseDigit ? '#FFD700' : '#ffffff',
+                  fontFamily: 'Impact, "Arial Black", sans-serif',
                   letterSpacing: 1,
-                  textShadow: isSuspenseDigit ? '0 0 12px rgba(255,215,0,0.9)' : '0 2px 6px rgba(0,0,0,0.4)',
+                  textShadow: isLockedStage
+                    ? '0 2px 6px rgba(0,0,0,0.6)'
+                    : isSuspenseDigit
+                    ? '0 0 16px rgba(255,215,0,0.95), 0 2px 6px rgba(0,0,0,0.5)'
+                    : '0 2px 6px rgba(0,0,0,0.45)',
+                  zIndex: 2,
                 }}
               >
                 {char}
@@ -1756,7 +1937,7 @@ export default function LiveDraw() {
                   </p>
                   <SlotDrum
                     spinning={phase === 'spinning'}
-                    winnerCode={winner?.winnerNumber || winner?.employeeCode}
+                    winnerCode={spinData?.winnerCode || winner?.winnerNumber || winner?.employeeCode}
                     sampleCodes={spinData?.sampleCodes}
                     currentGroup={currentGroup}
                     soundEnabled={soundEnabled}

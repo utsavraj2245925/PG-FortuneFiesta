@@ -142,12 +142,36 @@ function safeStopAudio(audio) {
 
 // ── EMP SONG AUDIO FOR EMPLOYEE LUCKY DRAW ──
 let empSongAudio = null;
+let pendingEmpSong = false;
+let autoUnlockAttached = false;
+
+export function setupAudioAutoUnlock() {
+  if (autoUnlockAttached || typeof window === 'undefined') return;
+  autoUnlockAttached = true;
+  const onUserGesture = () => {
+    resumeAudio();
+    if (pendingEmpSong && !isGlobalMuted) {
+      pendingEmpSong = false;
+      playEmpSong();
+    }
+  };
+  ['click', 'pointerdown', 'touchstart', 'keydown'].forEach(ev => {
+    window.addEventListener(ev, onUserGesture, { capture: true, passive: true });
+  });
+}
+
+export function isEmpSongPending() {
+  return pendingEmpSong;
+}
 
 export function preloadEmpSounds() {
   try {
+    setupAudioAutoUnlock();
     if (!empSongAudio) {
       empSongAudio = new Audio('/emp_song.mp3');
       empSongAudio.preload = 'auto';
+      empSongAudio.loop = true;
+      empSongAudio.volume = 0.95;
       empSongAudio.load();
     }
     if (!winnerExplosionAudio) {
@@ -160,36 +184,56 @@ export function preloadEmpSounds() {
 
 export function playEmpSong() {
   if (isGlobalMuted) return;
+  setupAudioAutoUnlock();
   try {
     resumeAudio();
-    stopAllAudio();
-    empSongAudio = new Audio('/emp_song.mp3');
+    // Stop competing background audio
+    safeStopAudio(hallOfFameAudio);
+    safeStopAudio(squidGameAudio);
+    safeStopAudio(countdownBeepAudio);
+
+    if (!empSongAudio) {
+      empSongAudio = new Audio('/emp_song.mp3');
+      empSongAudio.preload = 'auto';
+    }
     empSongAudio.loop = true;
     empSongAudio.volume = 0.95;
+    empSongAudio.currentTime = 0;
     activeAudios.add(empSongAudio);
 
     const playPromise = empSongAudio.play();
     if (playPromise !== undefined) {
-      playPromise.catch(() => {
+      playPromise.then(() => {
+        pendingEmpSong = false;
+      }).catch((err) => {
+        console.warn('EMP song play restricted by browser policy:', err);
+        pendingEmpSong = true;
         try {
           if (isGlobalMuted) return;
           const fallback = new Audio('/emp_song.mpeg');
           fallback.loop = true;
           fallback.volume = 0.95;
           activeAudios.add(fallback);
-          fallback.play().catch(() => {});
-          empSongAudio = fallback;
-        } catch {}
+          fallback.play().then(() => {
+            pendingEmpSong = false;
+            empSongAudio = fallback;
+          }).catch(() => {
+            pendingEmpSong = true;
+          });
+        } catch {
+          pendingEmpSong = true;
+        }
       });
     }
   } catch (err) {
     console.warn('Error playing EMP song:', err);
+    pendingEmpSong = true;
   }
 }
 
 export function stopEmpSong() {
+  pendingEmpSong = false;
   safeStopAudio(empSongAudio);
-  empSongAudio = null;
 }
 
 // ── HALL OF FAME SONG & FIRECRACKER AUDIO FOR FIESTA WINNERS SCREEN ──

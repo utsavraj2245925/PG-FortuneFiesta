@@ -101,6 +101,7 @@ router.post('/spin', auth, async (req, res) => {
         duration: 20000,
         sampleCodes: sampleCodes.slice(0, 200),
         winnerLength: winnerCode.length,
+        winnerCode: winnerCode,
       });
     }
 
@@ -206,6 +207,7 @@ router.post('/spin-again', auth, async (req, res) => {
         duration: 20000,
         sampleCodes: sampleCodes.slice(0, 200),
         winnerLength: winnerCode.length,
+        winnerCode: winnerCode,
       });
     }
 
