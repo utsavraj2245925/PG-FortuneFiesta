@@ -2121,6 +2121,8 @@ export default function AdminPanel() {
     try {
       const res = await axios.get('/api/guests/state', auth());
       setGuestState(res.data);
+      // Keep spinning state intact during the full 60 seconds
+      if (guestSpinTimerRef.current) return;
       if (res.data.spinning && !res.data.winner) setGuestSpinning(true);
       else setGuestSpinning(false);
     } catch {}

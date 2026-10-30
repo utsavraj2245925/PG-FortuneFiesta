@@ -122,6 +122,7 @@ export default function RouletteWheel({
   soundEnabled = true,
   onFinished,
 }) {
+  const effectiveDuration = Math.max(60000, Number(duration) || 60000);
   const [secondsLeft, setSecondsLeft] = useState(60);
   const [wheelRotation, setWheelRotation] = useState(0);
   const [ballAngle, setBallAngle] = useState(0);
@@ -219,7 +220,7 @@ export default function RouletteWheel({
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     spinCompletedRef.current = false;
     setIsRevealed(false);
-    setSecondsLeft(Math.max(1, Math.round(duration / 1000)));
+    setSecondsLeft(Math.max(1, Math.round(effectiveDuration / 1000)));
     setCountdownNum(null);
     setRevealStage(0);
     lastTickSecRef.current = null;
@@ -255,8 +256,8 @@ export default function RouletteWheel({
 
     const animate = () => {
       const elapsed = Date.now() - startTimeRef.current;
-      const progress = Math.min(1, elapsed / duration);
-      const remainingSec = Math.max(0, Math.ceil((duration - elapsed) / 1000));
+      const progress = Math.min(1, elapsed / effectiveDuration);
+      const remainingSec = Math.max(0, Math.ceil((effectiveDuration - elapsed) / 1000));
       setSecondsLeft(remainingSec);
 
       // Deceleration curve for the wheel: naturally slow down from fast to very slow
@@ -374,7 +375,7 @@ export default function RouletteWheel({
       stopGuestWinnerSong();
       stopContinuousCelebration();
     };
-  }, [spinning, duration, winIdx, segmentAngle, soundEnabled, onFinished]);
+  }, [spinning, effectiveDuration, winIdx, segmentAngle, soundEnabled, onFinished]);
 
   // Ensure full audio cleanup on component unmount (e.g. switching tabs away from guest zone)
   useEffect(() => {

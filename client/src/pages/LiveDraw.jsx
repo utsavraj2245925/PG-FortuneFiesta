@@ -1267,6 +1267,12 @@ export default function LiveDraw() {
   const [guestPrize, setGuestPrize] = useState(null);
   const [guestList, setGuestList] = useState([]);
 
+  // Full 60s spin protection refs (guarantees full 60s spin even if server reveals early)
+  const guestSpinningRef = useRef(false);
+  const guestSpinStartTimeRef = useRef(0);
+  const pendingGuestWinnerRef = useRef(null);
+  const pendingGuestPrizeRef = useRef(null);
+
   // Preload celebration audios upfront for instant 0-delay playback
   useEffect(() => {
     preloadFiestaWinnersAudio();
@@ -1435,8 +1441,12 @@ export default function LiveDraw() {
     'guest:spin_start': (data) => {
       stopAllAudio();
       setActiveZone('guest');
+      guestSpinningRef.current = true;
+      guestSpinStartTimeRef.current = Date.now();
+      pendingGuestWinnerRef.current = null;
+      pendingGuestPrizeRef.current = null;
       setGuestSpinning(true);
-      setGuestSpinData(data);
+      setGuestSpinData({ ...data, duration: 60000 });
       setGuestWinner(null);
       setGuestPrize(null);
       if (data.allGuests && data.allGuests.length > 0) {
@@ -1444,12 +1454,29 @@ export default function LiveDraw() {
       }
     },
     'guest:winner_revealed': (data) => {
+      const elapsed = Date.now() - guestSpinStartTimeRef.current;
+      // If currently spinning and less than 59s have passed, buffer the winner and DO NOT interrupt the 60s wheel!
+      if (guestSpinningRef.current && elapsed < 59000) {
+        pendingGuestWinnerRef.current = data.winner;
+        pendingGuestPrizeRef.current = data.prize;
+        setGuestSpinData(prev => ({
+          ...(prev || {}),
+          winningSerialNo: data.winner?.serialNo || prev?.winningSerialNo,
+          duration: 60000,
+        }));
+        return;
+      }
+      guestSpinningRef.current = false;
       setGuestSpinning(false);
       setGuestWinner(data.winner);
       setGuestPrize(data.prize);
       stopSquidGameSound();
     },
     'guest:reverted': () => {
+      guestSpinningRef.current = false;
+      guestSpinStartTimeRef.current = 0;
+      pendingGuestWinnerRef.current = null;
+      pendingGuestPrizeRef.current = null;
       setGuestSpinning(false);
       setGuestWinner(null);
       setGuestPrize(null);
@@ -1457,6 +1484,10 @@ export default function LiveDraw() {
       stopAllAudio();
     },
     'guest:reset': () => {
+      guestSpinningRef.current = false;
+      guestSpinStartTimeRef.current = 0;
+      pendingGuestWinnerRef.current = null;
+      pendingGuestPrizeRef.current = null;
       setGuestSpinning(false);
       setGuestWinner(null);
       setGuestPrize(null);
@@ -1465,9 +1496,29 @@ export default function LiveDraw() {
     },
     'guest:state': (st) => {
       if (st) {
+        const elapsed = Date.now() - guestSpinStartTimeRef.current;
+        // If local 60s spin is currently ongoing, ignore premature reveal state from server
+        if (guestSpinningRef.current && elapsed < 59000) {
+          if (st.winner) {
+            pendingGuestWinnerRef.current = st.winner;
+            pendingGuestPrizeRef.current = st.prize;
+            setGuestSpinData(prev => ({
+              ...(prev || {}),
+              winningSerialNo: st.winner?.serialNo || prev?.winningSerialNo,
+              duration: 60000,
+            }));
+          }
+          return;
+        }
+
         if (st.spinning && !st.winner) {
+          if (!guestSpinningRef.current) {
+            guestSpinStartTimeRef.current = Date.now();
+            guestSpinningRef.current = true;
+          }
           setGuestSpinning(true);
         } else {
+          guestSpinningRef.current = false;
           setGuestSpinning(false);
           stopSquidGameSound();
         }
@@ -2581,16 +2632,25 @@ export default function LiveDraw() {
               </div>
             </div>
 
-            {/* Interactive Roulette Wheel Component (Fits 100% on screen) */}
+            {/* Interactive Roulette Wheel Component (Guaranteed 60 Seconds Duration) */}
             <RouletteWheel
               spinning={guestSpinning}
               guests={guestList}
-              winningSerialNo={guestSpinData?.winningSerialNo || guestWinner?.serialNo}
-              winner={guestWinner}
-              prize={guestPrize}
-              duration={guestSpinData?.duration || 60000}
+              winningSerialNo={guestSpinData?.winningSerialNo || pendingGuestWinnerRef.current?.serialNo || guestWinner?.serialNo}
+              winner={guestWinner || (guestSpinning ? null : pendingGuestWinnerRef.current)}
+              prize={guestPrize || (guestSpinning ? null : pendingGuestPrizeRef.current)}
+              duration={60000}
               soundEnabled={soundEnabled}
-              onFinished={() => setGuestSpinning(false)}
+              onFinished={() => {
+                guestSpinningRef.current = false;
+                setGuestSpinning(false);
+                if (pendingGuestWinnerRef.current) {
+                  setGuestWinner(pendingGuestWinnerRef.current);
+                }
+                if (pendingGuestPrizeRef.current) {
+                  setGuestPrize(pendingGuestPrizeRef.current);
+                }
+              }}
             />
 
             {/* If waiting for spin */}
