@@ -262,34 +262,34 @@ export default function GuestsTab({ onGuestChange }) {
   return (
     <div style={{ maxWidth: 1050, margin: '0 auto' }}>
       {/* Summary Cards */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={8}>
-          <Card>
+      <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={8}>
+          <Card bodyStyle={{ padding: '14px 18px' }}>
             <Statistic
-              title="Total Guests"
+              title={<span style={{ fontSize: 13, fontWeight: 700 }}>Total Guests</span>}
               value={totalCount}
-              valueStyle={{ color: '#7B1FA2', fontWeight: 800 }}
-              prefix={<Crown size={20} style={{ color: '#7B1FA2', marginRight: 4 }} />}
+              valueStyle={{ color: '#7B1FA2', fontWeight: 800, fontSize: 24 }}
+              prefix={<Crown size={18} style={{ color: '#7B1FA2', marginRight: 4 }} />}
             />
           </Card>
         </Col>
-        <Col span={8}>
-          <Card>
+        <Col xs={12} sm={8}>
+          <Card bodyStyle={{ padding: '14px 18px' }}>
             <Statistic
-              title="Eligible for Draw"
+              title={<span style={{ fontSize: 13, fontWeight: 700 }}>Eligible</span>}
               value={eligibleCount}
-              valueStyle={{ color: '#52c41a', fontWeight: 800 }}
-              prefix={<UserCheck size={20} style={{ color: '#52c41a', marginRight: 4 }} />}
+              valueStyle={{ color: '#52c41a', fontWeight: 800, fontSize: 24 }}
+              prefix={<UserCheck size={18} style={{ color: '#52c41a', marginRight: 4 }} />}
             />
           </Card>
         </Col>
-        <Col span={8}>
-          <Card>
+        <Col xs={12} sm={8}>
+          <Card bodyStyle={{ padding: '14px 18px' }}>
             <Statistic
-              title="Guest Winner Drawn"
+              title={<span style={{ fontSize: 13, fontWeight: 700 }}>Won Draw</span>}
               value={wonCount}
-              valueStyle={{ color: '#D4AF37', fontWeight: 800 }}
-              prefix={<Trophy size={20} style={{ color: '#D4AF37', marginRight: 4 }} />}
+              valueStyle={{ color: '#D4AF37', fontWeight: 800, fontSize: 24 }}
+              prefix={<Trophy size={18} style={{ color: '#D4AF37', marginRight: 4 }} />}
             />
           </Card>
         </Col>
@@ -397,6 +397,7 @@ export default function GuestsTab({ onGuestChange }) {
           dataSource={filteredGuests}
           columns={columns}
           loading={loading}
+          scroll={{ x: 650 }}
           pagination={{ pageSize: 25, showSizeChanger: true, pageSizeOptions: ['15', '25', '50', '100'] }}
           rowSelection={{
             selectedRowKeys,

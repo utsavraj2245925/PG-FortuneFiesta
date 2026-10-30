@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Layout, Menu, Button, Upload, Table, Tag, Form, Input, InputNumber,
   message, Popconfirm, Card, Statistic, Row, Col, Badge, Space, Alert, Modal, Select, Tooltip, Pagination,
-  Radio, Progress, Divider
+  Radio, Progress, Divider, Drawer
 } from 'antd';
 import {
   UploadOutlined, PlayCircleOutlined, StepForwardOutlined,
@@ -24,6 +24,8 @@ import {
   Tv,
   RefreshCw,
   ShieldCheck,
+  Menu as MenuIcon,
+  X,
 } from 'lucide-react';
 import axios from 'axios';
 import { useSocket } from '../hooks/useSocket';
@@ -1967,6 +1969,7 @@ function EmployeesTab({ summary, onRefresh }) {
           columns={cols}
           rowKey="_id"
           loading={loading}
+          scroll={{ x: 750 }}
           pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'] }}
           size="small"
           rowClassName={r => (r.hasWon ? 'bg-yellow-50' : '')}
@@ -2032,6 +2035,16 @@ function EmployeesTab({ summary, onRefresh }) {
 export default function AdminPanel() {
   const navigate = useNavigate();
   const [page, setPage] = useState('game');
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 992);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 992);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [gameState, setGameState] = useState(null);
   const [winners, setWinners] = useState([]);
   const [summary, setSummary] = useState({ total: 0, groups: { 1: 0, 2: 0, 3: 0 } });
@@ -2252,7 +2265,7 @@ export default function AdminPanel() {
 
   return (
     <Layout className="min-h-screen" style={{ background: '#f8fafc' }}>
-      {/* ── FIXED TOP NAVBAR ── */}
+      {/* ── FIXED RESPONSIVE TOP NAVBAR ── */}
       <Header
         style={{
           position: 'fixed',
@@ -2260,43 +2273,64 @@ export default function AdminPanel() {
           left: 0,
           right: 0,
           width: '100%',
-          height: 64,
+          height: isMobile ? 56 : 64,
           zIndex: 1000,
           background: '#ffffff',
           borderBottom: '2px solid #C8102E',
-          padding: '0 24px',
+          padding: isMobile ? '0 12px' : '0 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <img src={LOGO} alt="PG" style={{ height: 42, objectFit: 'contain' }} />
-          <span style={{ fontWeight: 800, fontSize: 18, color: '#1a1a1a', letterSpacing: -0.2 }}>
-            Fortune Fiesta Lucky Draw
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 14 }}>
+          {/* Mobile Hamburger Drawer Trigger */}
+          {isMobile && (
+            <Button
+              type="text"
+              icon={<MenuIcon size={22} style={{ color: '#C8102E' }} />}
+              onClick={() => setMobileDrawerOpen(true)}
+              style={{
+                width: 38,
+                height: 38,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+              }}
+            />
+          )}
+          <img src={LOGO} alt="PG" style={{ height: isMobile ? 32 : 42, objectFit: 'contain' }} />
+          <span style={{ fontWeight: 800, fontSize: isMobile ? 15 : 18, color: '#1a1a1a', letterSpacing: -0.2 }}>
+            {isMobile ? 'PG Fortune Fiesta' : 'Fortune Fiesta Lucky Draw'}
           </span>
         </div>
 
-        <Space size={14} align="center">
+        <Space size={isMobile ? 8 : 14} align="center">
           <Button
             type="default"
-            icon={<ExternalLink size={15} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
+            size={isMobile ? 'small' : 'middle'}
+            icon={<ExternalLink size={14} style={{ verticalAlign: 'middle', marginRight: isMobile ? 0 : 4 }} />}
             onClick={() => window.open('/live', '_blank')}
             style={{
               fontWeight: 600,
               display: 'inline-flex',
               alignItems: 'center',
               borderRadius: 8,
-              height: 38,
+              height: isMobile ? 32 : 38,
+              paddingInline: isMobile ? 10 : 16,
+              fontSize: isMobile ? 12 : 14,
             }}
           >
-            Live Screen
+            {isMobile ? 'Live' : 'Live Screen'}
           </Button>
+
           <Button
             danger
             type="primary"
-            icon={<LogOut size={15} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
+            size={isMobile ? 'small' : 'middle'}
+            icon={<LogOut size={14} style={{ verticalAlign: 'middle', marginRight: isMobile ? 0 : 4 }} />}
             onClick={() => {
               localStorage.removeItem('pg_admin_token');
               navigate('/admin/login');
@@ -2307,297 +2341,288 @@ export default function AdminPanel() {
               alignItems: 'center',
               borderRadius: 8,
               background: '#C8102E',
-              height: 38,
+              height: isMobile ? 32 : 38,
+              paddingInline: isMobile ? 10 : 16,
+              fontSize: isMobile ? 12 : 14,
             }}
           >
-            Logout
+            {isMobile ? '' : 'Logout'}
           </Button>
 
-          {/* Attractive Admin Portal Badge with Avatar at the right end */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '4px 14px 4px 6px',
-              background: 'linear-gradient(135deg, #fff5f5 0%, #fef2f2 100%)',
-              border: '1.5px solid #fee2e2',
-              borderRadius: 30,
-              boxShadow: '0 2px 6px rgba(200, 16, 46, 0.08)',
-            }}
-          >
+          {/* Desktop Admin Portal Badge */}
+          {!isMobile && (
             <div
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #C8102E 0%, #8B0000 100%)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
-                boxShadow: '0 2px 6px rgba(200, 16, 46, 0.35)',
+                gap: 10,
+                padding: '4px 14px 4px 6px',
+                background: 'linear-gradient(135deg, #fff5f5 0%, #fef2f2 100%)',
+                border: '1.5px solid #fee2e2',
+                borderRadius: 30,
+                boxShadow: '0 2px 6px rgba(200, 16, 46, 0.08)',
               }}
             >
-              <ShieldCheck size={18} strokeWidth={2.4} color="#ffffff" />
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #C8102E 0%, #8B0000 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  boxShadow: '0 2px 6px rgba(200, 16, 46, 0.35)',
+                }}
+              >
+                <ShieldCheck size={18} strokeWidth={2.4} color="#ffffff" />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#1a1a1a', letterSpacing: 0.2 }}>
+                  Admin Portal
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                  Online
+                </span>
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: '#1a1a1a', letterSpacing: 0.2 }}>
-                Admin Portal
-              </span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-                Online
-              </span>
-            </div>
-          </div>
+          )}
         </Space>
       </Header>
 
-      {/* ── INNER LAYOUT (STARTING BELOW 64px FIXED HEADER) ── */}
-      <Layout style={{ marginTop: 64, minHeight: 'calc(100vh - 64px)', background: '#f8fafc' }}>
-        {/* ── FIXED ATTRACTIVE SIDEBAR WITH LUCIDE REACT ICONS ── */}
-        <Sider
-          width={240}
-          style={{
-            position: 'fixed',
-            top: 64,
-            left: 0,
-            bottom: 0,
-            height: 'calc(100vh - 64px)',
-            background: '#ffffff',
-            borderRight: '1px solid #eef2f6',
-            boxShadow: '2px 0 12px rgba(0,0,0,0.03)',
-            zIndex: 999,
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {/* Section Header */}
-          <div
-            style={{
-              padding: '18px 20px 10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: '#94a3b8',
-                letterSpacing: 1.2,
-                textTransform: 'uppercase',
-              }}
-            >
-              Navigation
-            </span>
-            <span
-              style={{
-                fontSize: 10,
-                background: '#f1f5f9',
-                color: '#475569',
-                padding: '2px 7px',
-                borderRadius: 10,
-                fontWeight: 700,
-                letterSpacing: 0.5,
-              }}
-            >
-              MENU
-            </span>
+      {/* ── MOBILE SLIDE-OUT DRAWER ── */}
+      <Drawer
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img src={LOGO} alt="PG" style={{ height: 32, objectFit: 'contain' }} />
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: '#1a1a1a', lineHeight: 1.2 }}>
+                PG Fortune Fiesta
+              </div>
+              <div style={{ fontSize: 11, color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                Mobile Admin Console
+              </div>
+            </div>
           </div>
+        }
+        placement="left"
+        onClose={() => setMobileDrawerOpen(false)}
+        open={mobileDrawerOpen}
+        width={280}
+        bodyStyle={{ padding: '12px 8px 30px' }}
+      >
+        <Menu
+          mode="inline"
+          selectedKeys={[page]}
+          style={{ borderRight: 0, background: 'transparent' }}
+          onClick={({ key }) => {
+            setPage(key);
+            setMobileDrawerOpen(false);
+          }}
+          items={[
+            {
+              key: 'game',
+              icon: <Gamepad2 size={18} strokeWidth={2.2} style={{ color: page === 'game' ? '#C8102E' : '#64748b' }} />,
+              label: <span style={{ fontWeight: page === 'game' ? 800 : 500, fontSize: 14 }}>Game Control</span>,
+            },
+            {
+              key: 'guests',
+              icon: <Crown size={18} strokeWidth={2.2} style={{ color: page === 'guests' ? '#7B1FA2' : '#64748b' }} />,
+              label: <span style={{ fontWeight: page === 'guests' ? 800 : 500, fontSize: 14 }}>VIP Guests</span>,
+            },
+            {
+              key: 'winners',
+              icon: <Trophy size={18} strokeWidth={2.2} style={{ color: page === 'winners' ? '#D4AF37' : '#64748b' }} />,
+              label: <span style={{ fontWeight: page === 'winners' ? 800 : 500, fontSize: 14 }}>Winners History</span>,
+            },
+            {
+              key: 'cards',
+              icon: <IdCard size={18} strokeWidth={2.2} style={{ color: page === 'cards' ? '#7B1FA2' : '#64748b' }} />,
+              label: <span style={{ fontWeight: page === 'cards' ? 800 : 500, fontSize: 14 }}>Cards Studio</span>,
+            },
+            {
+              key: 'employees',
+              icon: <Users size={18} strokeWidth={2.2} style={{ color: page === 'employees' ? '#1E88E5' : '#64748b' }} />,
+              label: <span style={{ fontWeight: page === 'employees' ? 800 : 500, fontSize: 14 }}>Employees Directory</span>,
+            },
+            {
+              key: 'prizes',
+              icon: <Gift size={18} strokeWidth={2.2} style={{ color: page === 'prizes' ? '#E65100' : '#64748b' }} />,
+              label: <span style={{ fontWeight: page === 'prizes' ? 800 : 500, fontSize: 14 }}>Prizes Setup</span>,
+            },
+          ]}
+        />
 
-          <Menu
-            mode="inline"
-            selectedKeys={[page]}
-            style={{
-              borderRight: 0,
-              background: 'transparent',
-              padding: '0 8px 90px 8px',
+        <Divider style={{ margin: '16px 0 12px' }} />
+
+        <div style={{ padding: '0 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <Button
+            block
+            icon={<ExternalLink size={15} />}
+            onClick={() => {
+              setMobileDrawerOpen(false);
+              window.open('/live', '_blank');
             }}
-            onClick={({ key }) => setPage(key)}
-            items={[
-              {
-                key: 'game',
-                icon: (
-                  <Gamepad2
-                    size={18}
-                    strokeWidth={2.2}
-                    style={{
-                      color: page === 'game' ? '#C8102E' : '#64748b',
-                      transition: 'color 0.2s',
-                    }}
-                  />
-                ),
-                label: (
-                  <span style={{ fontWeight: page === 'game' ? 700 : 500, fontSize: 14 }}>
-                    Game Control
-                  </span>
-                ),
-              },
-              {
-                key: 'cards',
-                icon: (
-                  <IdCard
-                    size={18}
-                    strokeWidth={2.2}
-                    style={{
-                      color: page === 'cards' ? '#7B1FA2' : '#64748b',
-                      transition: 'color 0.2s',
-                    }}
-                  />
-                ),
-                label: (
-                  <span style={{ fontWeight: page === 'cards' ? 700 : 500, fontSize: 14 }}>
-                    Cards Studio
-                  </span>
-                ),
-              },
-              {
-                key: 'guests',
-                icon: (
-                  <Crown
-                    size={18}
-                    strokeWidth={2.2}
-                    style={{
-                      color: page === 'guests' ? '#7B1FA2' : '#64748b',
-                      transition: 'color 0.2s',
-                    }}
-                  />
-                ),
-                label: (
-                  <span style={{ fontWeight: page === 'guests' ? 700 : 500, fontSize: 14 }}>
-                    VIP Guests
-                  </span>
-                ),
-              },
-              {
-                key: 'employees',
-                icon: (
-                  <Users
-                    size={18}
-                    strokeWidth={2.2}
-                    style={{
-                      color: page === 'employees' ? '#1E88E5' : '#64748b',
-                      transition: 'color 0.2s',
-                    }}
-                  />
-                ),
-                label: (
-                  <span style={{ fontWeight: page === 'employees' ? 700 : 500, fontSize: 14 }}>
-                    Employees Directory
-                  </span>
-                ),
-              },
-              {
-                key: 'prizes',
-                icon: (
-                  <Gift
-                    size={18}
-                    strokeWidth={2.2}
-                    style={{
-                      color: page === 'prizes' ? '#E65100' : '#64748b',
-                      transition: 'color 0.2s',
-                    }}
-                  />
-                ),
-                label: (
-                  <span style={{ fontWeight: page === 'prizes' ? 700 : 500, fontSize: 14 }}>
-                    Prizes Setup
-                  </span>
-                ),
-              },
-              {
-                key: 'winners',
-                icon: (
-                  <Trophy
-                    size={18}
-                    strokeWidth={2.2}
-                    style={{
-                      color: page === 'winners' ? '#D4AF37' : '#64748b',
-                      transition: 'color 0.2s',
-                    }}
-                  />
-                ),
-                label: (
-                  <span style={{ fontWeight: page === 'winners' ? 700 : 500, fontSize: 14 }}>
-                    Winners History
-                  </span>
-                ),
-              },
-            ]}
-          />
+            style={{ fontWeight: 600, height: 42, borderRadius: 8 }}
+          >
+            Open Live Audience Screen
+          </Button>
+          <Button
+            block
+            danger
+            icon={<LogOut size={15} />}
+            onClick={() => {
+              localStorage.removeItem('pg_admin_token');
+              navigate('/admin/login');
+            }}
+            style={{ fontWeight: 600, height: 42, borderRadius: 8 }}
+          >
+            Logout Admin
+          </Button>
+        </div>
+      </Drawer>
 
-          {/* Bottom Live System Indicator Badge — Pinned at bottom of sidebar */}
-          <div
+      {/* ── INNER LAYOUT (STARTING BELOW FIXED HEADER) ── */}
+      <Layout style={{ marginTop: isMobile ? 56 : 64, minHeight: isMobile ? 'calc(100vh - 56px)' : 'calc(100vh - 64px)', background: '#f8fafc' }}>
+        {/* DESKTOP FIXED SIDEBAR */}
+        {!isMobile && (
+          <Sider
+            width={240}
             style={{
-              position: 'absolute',
-              bottom: 0,
+              position: 'fixed',
+              top: 64,
               left: 0,
-              right: 0,
-              padding: '14px 20px',
-              borderTop: '1px solid #f1f5f9',
-              background: '#fbfcfd',
-              boxShadow: '0 -2px 10px rgba(0,0,0,0.02)',
-              zIndex: 10,
+              bottom: 0,
+              height: 'calc(100vh - 64px)',
+              background: '#ffffff',
+              borderRight: '1px solid #eef2f6',
+              boxShadow: '2px 0 12px rgba(0,0,0,0.03)',
+              zIndex: 999,
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: '#10b981',
-                  boxShadow: '0 0 8px rgba(16, 185, 129, 0.8)',
-                }}
-              />
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>
-                Admin Console Online
+            <div style={{ padding: '18px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                Navigation
+              </span>
+              <span style={{ fontSize: 10, background: '#f1f5f9', color: '#475569', padding: '2px 7px', borderRadius: 10, fontWeight: 700, letterSpacing: 0.5 }}>
+                MENU
               </span>
             </div>
-            <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500, paddingLeft: 16 }}>
-              PG Fortune Fiesta 2026
-            </div>
-          </div>
-        </Sider>
 
-        {/* ── SCROLLABLE MAIN CONTENT (MARGIN-LEFT 240px TO PREVENT OVERLAP) ── */}
+            <Menu
+              mode="inline"
+              selectedKeys={[page]}
+              style={{ borderRight: 0, background: 'transparent', padding: '0 8px 90px 8px' }}
+              onClick={({ key }) => setPage(key)}
+              items={[
+                {
+                  key: 'game',
+                  icon: <Gamepad2 size={18} strokeWidth={2.2} style={{ color: page === 'game' ? '#C8102E' : '#64748b' }} />,
+                  label: <span style={{ fontWeight: page === 'game' ? 700 : 500, fontSize: 14 }}>Game Control</span>,
+                },
+                {
+                  key: 'cards',
+                  icon: <IdCard size={18} strokeWidth={2.2} style={{ color: page === 'cards' ? '#7B1FA2' : '#64748b' }} />,
+                  label: <span style={{ fontWeight: page === 'cards' ? 700 : 500, fontSize: 14 }}>Cards Studio</span>,
+                },
+                {
+                  key: 'guests',
+                  icon: <Crown size={18} strokeWidth={2.2} style={{ color: page === 'guests' ? '#7B1FA2' : '#64748b' }} />,
+                  label: <span style={{ fontWeight: page === 'guests' ? 700 : 500, fontSize: 14 }}>VIP Guests</span>,
+                },
+                {
+                  key: 'employees',
+                  icon: <Users size={18} strokeWidth={2.2} style={{ color: page === 'employees' ? '#1E88E5' : '#64748b' }} />,
+                  label: <span style={{ fontWeight: page === 'employees' ? 700 : 500, fontSize: 14 }}>Employees Directory</span>,
+                },
+                {
+                  key: 'prizes',
+                  icon: <Gift size={18} strokeWidth={2.2} style={{ color: page === 'prizes' ? '#E65100' : '#64748b' }} />,
+                  label: <span style={{ fontWeight: page === 'prizes' ? 700 : 500, fontSize: 14 }}>Prizes Setup</span>,
+                },
+                {
+                  key: 'winners',
+                  icon: <Trophy size={18} strokeWidth={2.2} style={{ color: page === 'winners' ? '#D4AF37' : '#64748b' }} />,
+                  label: <span style={{ fontWeight: page === 'winners' ? 700 : 500, fontSize: 14 }}>Winners History</span>,
+                },
+              ]}
+            />
+
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                padding: '14px 20px',
+                borderTop: '1px solid #f1f5f9',
+                background: '#fbfcfd',
+                boxShadow: '0 -2px 10px rgba(0,0,0,0.02)',
+                zIndex: 10,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px rgba(16, 185, 129, 0.8)' }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>
+                  Admin Console Online
+                </span>
+              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500, paddingLeft: 16 }}>
+                PG Fortune Fiesta 2026
+              </div>
+            </div>
+          </Sider>
+        )}
+
+        {/* ── SCROLLABLE MAIN CONTENT (RESPONSIVE MARGIN & PADDING) ── */}
         <Content
           style={{
-            marginLeft: 240,
-            minHeight: 'calc(100vh - 64px)',
-            padding: '24px 32px',
+            marginLeft: isMobile ? 0 : 240,
+            minHeight: isMobile ? 'calc(100vh - 56px)' : 'calc(100vh - 64px)',
+            padding: isMobile ? '14px 12px 88px' : '24px 32px',
             background: '#f8fafc',
+            maxWidth: '100%',
+            overflowX: 'hidden',
           }}
         >
 
           {/* GAME CONTROL */}
           {page === 'game' && (
-            <div style={{ maxWidth: 980, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Row gutter={16}>
+            <div style={{ maxWidth: 980, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16 }}>
+              {/* TOP SUMMARY STATS CARDS (RESPONSIVE 2X2 GRID ON MOBILE) */}
+              <Row gutter={[10, 10]}>
                 {[
-                  { label: 'Total', value: summary.total, color: '#C8102E' },
-                  { label: 'Group A', value: summary.groups?.[1] || 0 },
-                  { label: 'Group B', value: summary.groups?.[2] || 0 },
-                  { label: 'Group C', value: summary.groups?.[3] || 0 },
+                  { label: 'Total Pool', value: summary.total, color: '#C8102E' },
+                  { label: 'Group A', value: summary.groups?.[1] || 0, color: '#1677ff' },
+                  { label: 'Group B', value: summary.groups?.[2] || 0, color: '#722ed1' },
+                  { label: 'Group C', value: summary.groups?.[3] || 0, color: '#52c41a' },
                 ].map(s => (
-                  <Col span={6} key={s.label}>
-                    <Card><Statistic title={s.label} value={s.value} valueStyle={s.color ? { color: s.color, fontWeight: 700 } : {}} /></Card>
+                  <Col xs={12} sm={6} key={s.label}>
+                    <Card bodyStyle={{ padding: isMobile ? '12px 14px' : '18px 20px' }} style={{ borderRadius: 12, height: '100%' }}>
+                      <Statistic
+                        title={<span style={{ fontSize: isMobile ? 12 : 13, fontWeight: 700, color: '#64748b' }}>{s.label}</span>}
+                        value={s.value}
+                        valueStyle={{ color: s.color || '#1e293b', fontWeight: 800, fontSize: isMobile ? 22 : 28 }}
+                      />
+                    </Card>
                   </Col>
                 ))}
               </Row>
 
               {/* 1. EMPLOYEE GAME CONTROL (ROUNDS 1A-3C) */}
               <Card
+                style={{ borderRadius: 14 }}
                 title={
-                  <Space align="center">
+                  <Space align="center" wrap>
                     <Gamepad2 size={18} style={{ color: '#C8102E' }} />
-                    <span style={{ fontWeight: 700 }}>Employee Game Control (Rounds 1A–3C)</span>
-                    {isActive && <Badge status={status === 'spinning' ? 'processing' : 'success'} text={status === 'spinning' ? 'Spinning...' : status === 'revealed' ? 'Winner Revealed' : 'Ready'} />}
+                    <span style={{ fontWeight: 800, fontSize: isMobile ? 14 : 16 }}>Employee Game Control (1A–3C)</span>
+                    {isActive && <Badge status={status === 'spinning' ? 'processing' : 'success'} text={status === 'spinning' ? 'Spinning...' : status === 'revealed' ? 'Revealed' : 'Ready'} />}
                   </Space>
                 }
                 extra={<Popconfirm title="Reset entire employee game?" onConfirm={resetGame}><Button icon={<ReloadOutlined />} danger size="small">Reset</Button></Popconfirm>}
@@ -2606,11 +2631,11 @@ export default function AdminPanel() {
                   <div>
                     <Alert
                       type="info"
-                      style={{ marginBottom: 12, padding: '8px 14px', borderRadius: 8 }}
+                      style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 8 }}
                       message={
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                          <span style={{ fontSize: 15, fontWeight: 700 }}>
-                            Active Round: <span style={{ color: '#C8102E', fontSize: 16 }}>{ROUND_NAMES[currentRound] || currentRound}</span> / 9
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                          <span style={{ fontSize: isMobile ? 13.5 : 15, fontWeight: 700 }}>
+                            Active Round: <span style={{ color: '#C8102E', fontSize: isMobile ? 14.5 : 16 }}>{ROUND_NAMES[currentRound] || currentRound}</span> / 9
                             &nbsp;&nbsp;|&nbsp;&nbsp;
                             <Tag color={GROUP_COLORS[currentGroup]} style={{ fontWeight: 700 }}>{GROUP_LABELS[currentGroup]}</Tag>
                           </span>
@@ -2621,13 +2646,16 @@ export default function AdminPanel() {
                       }
                     />
 
-                    {/* All 9 rounds in ONE single compact row */}
+                    {/* 9 rounds track: Scrollable swipe track on mobile, 9 columns on desktop */}
                     <div
                       style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(9, minmax(0, 1fr))',
+                        display: isMobile ? 'flex' : 'grid',
+                        gridTemplateColumns: isMobile ? undefined : 'repeat(9, minmax(0, 1fr))',
+                        overflowX: isMobile ? 'auto' : 'visible',
+                        WebkitOverflowScrolling: 'touch',
                         gap: 6,
                         marginBottom: 16,
+                        paddingBottom: isMobile ? 4 : 0,
                       }}
                     >
                       {Array.from({ length: 9 }, (_, i) => {
@@ -2638,6 +2666,7 @@ export default function AdminPanel() {
                           <div
                             key={r}
                             style={{
+                              flex: isMobile ? '0 0 76px' : undefined,
                               padding: '7px 4px',
                               borderRadius: 8,
                               border: `2px solid ${isCurrent ? '#C8102E' : w ? '#52c41a' : '#e2e8f0'}`,
@@ -2699,17 +2728,18 @@ export default function AdminPanel() {
                     {gameState?.status === 'revealed' && (
                       <div style={{
                         margin: '12px 0 16px',
-                        padding: '12px 18px',
+                        padding: isMobile ? '12px 14px' : '14px 18px',
                         background: '#fff8e6',
                         border: '2px dashed #D4AF37',
                         borderRadius: 10,
                         display: 'flex',
-                        alignItems: 'center',
+                        flexDirection: isMobile ? 'column' : 'row',
+                        alignItems: isMobile ? 'stretch' : 'center',
                         justifyContent: 'space-between',
-                        gap: 16,
+                        gap: 12,
                       }}>
                         <div>
-                          <div style={{ fontWeight: 700, color: '#8B6914', fontSize: 14 }}>
+                          <div style={{ fontWeight: 800, color: '#8B6914', fontSize: 14 }}>
                             ⚠️ Winner not present?
                           </div>
                           <div style={{ color: '#888', fontSize: 12, marginTop: 2 }}>
@@ -2734,40 +2764,79 @@ export default function AdminPanel() {
                               setSpinning(false);
                             }
                           }}
-                          style={{ whiteSpace: 'nowrap', minWidth: 140, height: 44 }}
+                          style={{
+                            whiteSpace: 'nowrap',
+                            minWidth: isMobile ? '100%' : 140,
+                            height: 46,
+                            fontWeight: 700,
+                          }}
                         >
                           🔄 Spin Again
                         </Button>
                       </div>
                     )}
 
-                    <Space size="middle">
+                    {/* Action buttons: full-width on mobile */}
+                    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 10, width: '100%' }}>
                       <Button
-                        type="primary" size="large" icon={<PlayCircleOutlined />}
-                        loading={spinning} onClick={spin}
+                        type="primary"
+                        size="large"
+                        icon={<PlayCircleOutlined />}
+                        loading={spinning}
+                        onClick={spin}
                         disabled={status === 'spinning' || currentRound > 9}
-                        style={{ backgroundColor: '#C8102E', borderColor: '#C8102E', height: 48, paddingInline: 32, fontSize: 16, fontWeight: 700 }}
+                        style={{
+                          backgroundColor: '#C8102E',
+                          borderColor: '#C8102E',
+                          height: 50,
+                          paddingInline: isMobile ? 16 : 32,
+                          fontSize: 16,
+                          fontWeight: 800,
+                          flex: isMobile ? '1 1 auto' : undefined,
+                          boxShadow: '0 4px 14px rgba(200,16,46,0.3)',
+                        }}
                       >
                         🎰 SPIN Round {currentRound}
                       </Button>
                       <Button
-                        size="large" icon={<StepForwardOutlined />} onClick={nextRound}
+                        size="large"
+                        icon={<StepForwardOutlined />}
+                        onClick={nextRound}
                         disabled={status !== 'revealed' || currentRound >= 9}
-                        style={{ height: 48, paddingInline: 24, fontWeight: 600 }}
+                        style={{
+                          height: 50,
+                          paddingInline: isMobile ? 16 : 24,
+                          fontWeight: 700,
+                          fontSize: 15,
+                          flex: isMobile ? '1 1 auto' : undefined,
+                        }}
                       >
                         Next Round →
                       </Button>
-                    </Space>
+                    </div>
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '32px 0' }}>
-                    <div style={{ fontSize: 48, marginBottom: 12 }}>🪔</div>
+                  <div style={{ textAlign: 'center', padding: isMobile ? '20px 0' : '32px 0' }}>
+                    <div style={{ fontSize: isMobile ? 36 : 48, marginBottom: 12 }}>🪔</div>
                     {summary.total === 0
                       ? <p style={{ color: '#888', marginBottom: 16 }}>Configure cards first to start.</p>
                       : <p style={{ color: '#555', marginBottom: 16 }}><strong>{summary.total} cards</strong> ready across 3 groups.</p>
                     }
-                    <Button type="primary" size="large" onClick={startGame} disabled={summary.total === 0}
-                      style={{ backgroundColor: '#C8102E', borderColor: '#C8102E', height: 52, paddingInline: 56, fontSize: 18, fontWeight: 700 }}>
+                    <Button
+                      type="primary"
+                      size="large"
+                      onClick={startGame}
+                      disabled={summary.total === 0}
+                      style={{
+                        backgroundColor: '#C8102E',
+                        borderColor: '#C8102E',
+                        height: 52,
+                        paddingInline: isMobile ? 24 : 56,
+                        fontSize: isMobile ? 16 : 18,
+                        fontWeight: 800,
+                        width: isMobile ? '100%' : 'auto',
+                      }}
+                    >
                       🪔 Start Lucky Draw
                     </Button>
                   </div>
@@ -2776,39 +2845,39 @@ export default function AdminPanel() {
 
               {/* 2. VIP GUEST PLAYING ZONE */}
               <Card
-                style={{ borderTop: '4px solid #7B1FA2' }}
+                style={{ borderTop: '4px solid #7B1FA2', borderRadius: 14 }}
                 title={
-                  <Space align="center">
+                  <Space align="center" wrap>
                     <Crown size={19} style={{ color: '#7B1FA2' }} />
-                    <span style={{ fontWeight: 800, color: '#4A154B' }}>VIP Guest Playing Zone (Roulette Draw — 1 Winner Round)</span>
+                    <span style={{ fontWeight: 800, color: '#4A154B', fontSize: isMobile ? 14 : 16 }}>VIP Guest Playing Zone (Roulette)</span>
                     <Badge
                       status={guestSpinning || guestState?.status === 'spinning' ? 'processing' : guestState?.winner ? 'success' : 'default'}
-                      text={guestSpinning || guestState?.status === 'spinning' ? 'Roulette Spinning (30s)...' : guestState?.winner ? 'Guest Winner Revealed' : 'Ready'}
+                      text={guestSpinning || guestState?.status === 'spinning' ? 'Spinning (30s)...' : guestState?.winner ? 'Winner Drawn' : 'Ready'}
                     />
                   </Space>
                 }
                 extra={
                   <Popconfirm title="Reset VIP Guest Draw?" onConfirm={resetGuest}>
-                    <Button danger size="small" icon={<ReloadOutlined />}>Reset Guest</Button>
+                    <Button danger size="small" icon={<ReloadOutlined />}>Reset</Button>
                   </Popconfirm>
                 }
               >
                 <Row gutter={[16, 12]} align="middle">
                   <Col xs={24} sm={13}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a' }}>
+                    <div style={{ fontSize: isMobile ? 14 : 15, fontWeight: 700, color: '#1a1a1a' }}>
                       VIP Guests in Pool: <span style={{ color: '#7B1FA2', fontWeight: 800 }}>{guestState?.total || 0} Guests</span>
                       {guestState?.eligibleCount !== undefined && (
-                        <span style={{ color: '#52c41a', marginLeft: 10, fontSize: 13, fontWeight: 600 }}>
+                        <span style={{ color: '#52c41a', marginLeft: 8, fontSize: 13, fontWeight: 700 }}>
                           ({guestState.eligibleCount} eligible)
                         </span>
                       )}
                     </div>
                     <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                      Single round casino roulette wheel with 30-second suspense countdown & celebration on Live Screen.
+                      Single round casino roulette wheel with 30s countdown & celebration on Live Screen.
                     </div>
                   </Col>
-                  <Col xs={24} sm={11} style={{ textAlign: 'right' }}>
-                    <Space wrap size="small">
+                  <Col xs={24} sm={11} style={{ textAlign: isMobile ? 'left' : 'right', marginTop: isMobile ? 8 : 0 }}>
+                    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8, justifyContent: isMobile ? 'stretch' : 'flex-end' }}>
                       <Button
                         type="primary"
                         size="large"
@@ -2816,7 +2885,14 @@ export default function AdminPanel() {
                         onClick={spinGuest}
                         disabled={(guestState?.eligibleCount || 0) === 0 || guestSpinning || guestState?.status === 'spinning'}
                         icon={<Sparkles size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
-                        style={{ background: '#7B1FA2', borderColor: '#7B1FA2', fontWeight: 800, height: 44, paddingInline: 24 }}
+                        style={{
+                          background: '#7B1FA2',
+                          borderColor: '#7B1FA2',
+                          fontWeight: 800,
+                          height: 48,
+                          paddingInline: 20,
+                          width: isMobile ? '100%' : 'auto',
+                        }}
                       >
                         SPIN Guest Roulette (30s)
                       </Button>
@@ -2824,11 +2900,11 @@ export default function AdminPanel() {
                         size="large"
                         onClick={() => window.open('/live', '_blank')}
                         icon={<Tv size={15} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
-                        style={{ height: 44, fontWeight: 600 }}
+                        style={{ height: 48, fontWeight: 600, width: isMobile ? '100%' : 'auto' }}
                       >
                         View Live Screen
                       </Button>
-                    </Space>
+                    </div>
                   </Col>
                 </Row>
 
@@ -2839,11 +2915,11 @@ export default function AdminPanel() {
                       background: 'linear-gradient(135deg, #fbf7ff 0%, #f3e8ff 100%)',
                       border: '2px solid #7B1FA2',
                       borderRadius: 12,
-                      padding: '14px 18px',
+                      padding: isMobile ? '12px 14px' : '14px 18px',
                       display: 'flex',
-                      alignItems: 'center',
+                      alignItems: isMobile ? 'stretch' : 'center',
+                      flexDirection: isMobile ? 'column' : 'row',
                       justifyContent: 'space-between',
-                      flexWrap: 'wrap',
                       gap: 12,
                       marginTop: 14,
                     }}
@@ -2852,7 +2928,7 @@ export default function AdminPanel() {
                       <div style={{ fontSize: 12, fontWeight: 800, color: '#7B1FA2', letterSpacing: 0.8, display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Crown size={15} /> VIP GUEST WINNER DRAWN:
                       </div>
-                      <div style={{ fontSize: 19, fontWeight: 900, color: '#1a1a1a', marginTop: 2 }}>
+                      <div style={{ fontSize: isMobile ? 17 : 19, fontWeight: 900, color: '#1a1a1a', marginTop: 2 }}>
                         #{guestState.winner.serialNo} — {guestState.winner.name} &nbsp;
                         <Tag color="purple" style={{ fontSize: 12, fontWeight: 700 }}>Unit: {guestState.winner.unit || 'PGTL'}</Tag>
                       </div>
@@ -2874,7 +2950,7 @@ export default function AdminPanel() {
                         danger
                         size="middle"
                         icon={<RefreshCw size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
-                        style={{ height: 40, fontWeight: 700 }}
+                        style={{ height: 42, fontWeight: 700, width: isMobile ? '100%' : 'auto' }}
                       >
                         Revert (Guest Not Available)
                       </Button>
@@ -2892,17 +2968,17 @@ export default function AdminPanel() {
                   boxShadow: '0 8px 24px rgba(212,175,55,0.22)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+                <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', flexDirection: isMobile ? 'column' : 'row', gap: 14 }}>
                   <div>
-                    <div style={{ fontSize: 17, fontWeight: 900, color: '#FFD700', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 900, color: '#FFD700', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Trophy size={20} style={{ color: '#FFD700' }} />
-                      <span>Audience Screen Display: PG - FORTUNE FIESTA WINNERS</span>
+                      <span>Audience Screen: FIESTA WINNERS</span>
                     </div>
-                    <div style={{ color: '#cbd5e1', fontSize: 13, marginTop: 4 }}>
-                      Click below to broadcast the complete VIP Guest & Employee Winners ceremony to the Audience Live Screen (/live) with celebratory music & continuous sparkles.
+                    <div style={{ color: '#cbd5e1', fontSize: 12.5, marginTop: 4 }}>
+                      Broadcast the complete VIP Guest & Employee Winners ceremony to the Audience Live Screen (/live) with music & sparkles.
                     </div>
                   </div>
-                  <Space size="middle">
+                  <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 10 }}>
                     <Button
                       type="primary"
                       size="large"
@@ -2916,23 +2992,24 @@ export default function AdminPanel() {
                         borderColor: '#FFD700',
                         color: '#000',
                         fontWeight: 900,
-                        fontSize: 15,
-                        height: 46,
-                        paddingInline: 24,
+                        fontSize: 14.5,
+                        height: 48,
+                        paddingInline: 20,
                         boxShadow: '0 4px 14px rgba(255,215,0,0.35)',
+                        width: isMobile ? '100%' : 'auto',
                       }}
                     >
-                      {showFiestaWinners ? '✅ Fiesta Winners Live (Click to Return)' : '🏆 To Show Fiesta Winners'}
+                      {showFiestaWinners ? '✅ Fiesta Winners Live (Return)' : '🏆 Show Fiesta Winners'}
                     </Button>
                     <Button
                       size="large"
                       icon={<ExternalLink size={16} />}
                       onClick={() => window.open('/live', '_blank')}
-                      style={{ height: 46, fontWeight: 700 }}
+                      style={{ height: 48, fontWeight: 700, width: isMobile ? '100%' : 'auto' }}
                     >
-                      View Live Screen ↗
+                      Live Screen ↗
                     </Button>
-                  </Space>
+                  </div>
                 </div>
               </Card>
             </div>
@@ -3025,6 +3102,8 @@ export default function AdminPanel() {
                   columns={winnerColumns}
                   rowKey="_id"
                   pagination={false}
+                  scroll={{ x: 650 }}
+                  size={isMobile ? 'small' : 'middle'}
                   locale={{ emptyText: 'No employee winners drawn yet' }}
                 />
               </Card>
@@ -3181,6 +3260,75 @@ export default function AdminPanel() {
             <GuestsTab onGuestChange={loadGuestState} />
           )}
         </Content>
+        {/* ── MOBILE BOTTOM THUMB BAR (FOR FAST ONE-HAND EVENT MANAGEMENT) ── */}
+        {isMobile && (
+          <div
+            style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 60,
+              background: '#ffffff',
+              borderTop: '1px solid #e2e8f0',
+              boxShadow: '0 -3px 12px rgba(0,0,0,0.08)',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-around',
+              padding: '0 4px',
+            }}
+          >
+            {[
+              { key: 'game', label: 'Game', icon: <Gamepad2 size={20} /> },
+              { key: 'guests', label: 'VIP Guests', icon: <Crown size={20} /> },
+              { key: 'winners', label: 'Winners', icon: <Trophy size={20} /> },
+              { key: 'cards', label: 'Cards', icon: <IdCard size={20} /> },
+              { key: 'more', label: 'More', icon: <MenuIcon size={20} /> },
+            ].map(tab => {
+              const isActiveTab = page === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => {
+                    if (tab.key === 'more') {
+                      setMobileDrawerOpen(true);
+                    } else {
+                      setPage(tab.key);
+                    }
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 3,
+                    padding: '6px 8px',
+                    color: isActiveTab ? '#C8102E' : '#64748b',
+                    fontWeight: isActiveTab ? 800 : 600,
+                    fontSize: 10.5,
+                    transition: 'all 0.2s ease',
+                    flex: 1,
+                  }}
+                >
+                  <div
+                    style={{
+                      transform: isActiveTab ? 'scale(1.15)' : 'scale(1)',
+                      transition: 'transform 0.2s ease',
+                    }}
+                  >
+                    {tab.icon}
+                  </div>
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </Layout>
     </Layout>
   );
