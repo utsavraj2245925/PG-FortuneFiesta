@@ -160,10 +160,18 @@ export default function RouletteWheel({
     return idx !== -1 ? idx : 0;
   }, [segments, winningSerialNo]);
 
-  // ── GRAND CASINO SIZE: Visible and bigger on screen ──
-  // 460px when centered/spinning, 390px when side-by-side with winner card
+  // ── GRAND CASINO SIZE: Responsive calculation fitting any PC screen without vertical scrolling ──
+  const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 800);
+  useEffect(() => {
+    const handleResize = () => setWindowHeight(window.innerHeight);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const isWinnerRevealed = Boolean(isRevealed || winner);
-  const wheelSize = isWinnerRevealed ? 390 : 460;
+  // Guarantee wheel fits on screen: navbar (~60px) + tabs (~45px) + header (~65px) + footer (~35px) = ~205px
+  const maxWheelAvail = Math.max(260, Math.min(440, windowHeight - 215));
+  const wheelSize = isWinnerRevealed ? Math.min(370, maxWheelAvail) : maxWheelAvail;
   const centerR = (wheelSize - 36) / 2;
   const pocketRadius = centerR * 0.74; // resting radius of ball in pocket
 
@@ -659,12 +667,12 @@ export default function RouletteWheel({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 240, damping: 20 }}
             style={{
-              width: 500,
+              width: 'clamp(340px, 36vw, 480px)',
               maxWidth: '100%',
               background: 'linear-gradient(135deg, #2E0854 0%, #4A154B 50%, #1A002C 100%)',
               border: '3px solid #D4AF37',
               borderRadius: 22,
-              padding: '20px 28px',
+              padding: 'clamp(12px, 1.8vh, 20px) clamp(16px, 2vw, 28px)',
               textAlign: 'center',
               boxShadow: '0 0 60px rgba(212,175,55,0.45), 0 16px 40px rgba(0,0,0,0.5)',
               color: '#fff',
@@ -680,12 +688,12 @@ export default function RouletteWheel({
                 background: 'linear-gradient(90deg, #FFD700, #FFA500)',
                 color: '#2E0854',
                 fontWeight: 900,
-                fontSize: 11,
+                fontSize: 'clamp(9.5px, 1.2vh, 11px)',
                 letterSpacing: 1.5,
-                padding: '4px 18px',
+                padding: '3px 16px',
                 borderRadius: 14,
                 textTransform: 'uppercase',
-                marginBottom: 10,
+                marginBottom: 6,
                 boxShadow: '0 2px 8px rgba(255,215,0,0.4)',
               }}
             >
@@ -693,7 +701,7 @@ export default function RouletteWheel({
             </motion.div>
 
             {/* Lucky Number (Reveals first) */}
-            <div style={{ fontSize: 12, color: '#e0c3fc', fontWeight: 700, letterSpacing: 1 }}>
+            <div style={{ fontSize: 'clamp(10px, 1.3vh, 12px)', color: '#e0c3fc', fontWeight: 700, letterSpacing: 1 }}>
               LUCKY NUMBER / SERIAL NO.
             </div>
             <motion.div
@@ -701,14 +709,14 @@ export default function RouletteWheel({
               animate={{ scale: [1, 1.08, 1], opacity: 1 }}
               transition={{ duration: 0.8 }}
               style={{
-                fontSize: 58,
+                fontSize: 'clamp(38px, 6vh, 56px)',
                 fontWeight: 900,
                 fontFamily: 'Impact, Arial Black, sans-serif',
                 background: 'linear-gradient(135deg, #FFF8DC 0%, #FFD700 50%, #FFA500 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 lineHeight: 1,
-                margin: '2px 0 8px',
+                margin: '2px 0 6px',
                 letterSpacing: 2,
                 textShadow: '0 0 20px rgba(255,215,0,0.6)',
               }}
@@ -724,11 +732,11 @@ export default function RouletteWheel({
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
                   style={{
-                    fontSize: 26,
+                    fontSize: 'clamp(18px, 3vh, 26px)',
                     fontWeight: 900,
                     fontFamily: 'Georgia, serif',
                     color: '#ffffff',
-                    marginBottom: 8,
+                    marginBottom: 6,
                     lineHeight: 1.2,
                     textShadow: '0 2px 8px rgba(0,0,0,0.6)',
                   }}

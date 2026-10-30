@@ -66,7 +66,7 @@ function fireConfetti() {
 }
 
 // 20-Second Realistic Multi-Phase Slot Drum Animation with Authentic Group Prefixes & Staggered Suspense
-function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEnabled = true, onCountdownZero }) {
+function SlotDrum({ spinning, winnerCode, isForceLocked, sampleCodes, currentGroup = 1, soundEnabled = true, onCountdownZero }) {
   // Real employee code pool for current group
   const samplePool = React.useMemo(() => {
     if (sampleCodes && sampleCodes.length > 0) return sampleCodes;
@@ -139,9 +139,20 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
   const lastTickSecRef = useRef(null);
   const hasExplodedRef = useRef(false);
 
-  // Sync idle display when not spinning
+  // Sync forced lock or idle display
   useEffect(() => {
+    if (isForceLocked) {
+      clearTimeout(animTimeoutRef.current);
+      clearInterval(timerIntervalRef.current);
+      setChars((targetPref + targetDigits).split(''));
+      setPhaseStage('locked');
+      setHighlightIndices(Array.from({ length: targetLen }, (_, i) => i));
+      return;
+    }
+
     if (!spinning) {
+      clearTimeout(animTimeoutRef.current);
+      clearInterval(timerIntervalRef.current);
       if (winnerCode) {
         setChars(winnerCode.split(''));
       } else {
@@ -150,9 +161,16 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
       setPhaseStage('idle');
       setHighlightIndices([]);
     }
-  }, [spinning, winnerCode, targetLen]);
+  }, [spinning, isForceLocked, winnerCode, targetPref, targetDigits, targetLen]);
 
   useEffect(() => {
+    if (isForceLocked) {
+      setChars((targetPref + targetDigits).split(''));
+      setPhaseStage('locked');
+      setHighlightIndices(Array.from({ length: targetLen }, (_, i) => i));
+      return;
+    }
+
     if (!spinning) {
       clearTimeout(animTimeoutRef.current);
       clearInterval(timerIntervalRef.current);
@@ -205,10 +223,15 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
       const elapsed = Date.now() - startT;
       const remainingSec = Math.max(0, Math.ceil((duration - elapsed) / 1000));
 
-      if (elapsed >= duration || remainingSec === 0) {
+      // At end of duration or last 600ms: Lock onto the EXACT WINNER employee code!
+      if (elapsed >= 19300 || remainingSec === 0) {
         setChars((targetPref + targetDigits).split(''));
         setPhaseStage('locked');
         setHighlightIndices(Array.from({ length: targetLen }, (_, i) => i));
+        if (onCountdownZero && !hasExplodedRef.current) {
+          hasExplodedRef.current = true;
+          onCountdownZero();
+        }
         return;
       }
 
@@ -252,9 +275,7 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
       }
 
       // ── PHASE 3: LAST 10 SECONDS (10s - 20s, remaining <= 10s) ──
-      // "and at the last 10 seconds it's being slow , slow all from the 9 digits 
-      //  all from the 6 numericals digits being slow but randomely spin slow 1 in any of 6 number digits 
-      //  and the employe character also spins - PT/PG/VON/RUD.. its character also spinning accordingly to his group"
+      // Sequential, high-suspense locking settling on the TRUE winner code:
       else {
         setPhaseStage('suspense');
 
@@ -301,13 +322,14 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
         if (unlockedNumericOffsets.length > 0) {
           const chosenOffset = unlockedNumericOffsets[Math.floor(Math.random() * unlockedNumericOffsets.length)];
           const slotIndex = prefLen + chosenOffset;
-          // Change this 1 digit slowly
+          // When 1 second remains on the final digit: tumble toward winner
           if (remainingSec <= 1 && chosenOffset === 5) {
-            // Very last digit near the end: alternate between close candidates
-            const targetVal = parseInt(targetDigits[5], 10);
-            const closeOffsets = [-1, 1, 2, -2];
-            const delta = closeOffsets[Math.floor(Math.random() * closeOffsets.length)];
-            currentDigitsArr[chosenOffset] = String((targetVal + delta + 10) % 10);
+            // Alternate towards the final winning digit
+            if (Math.random() < 0.6) {
+              currentDigitsArr[chosenOffset] = targetDigits[5];
+            } else {
+              currentDigitsArr[chosenOffset] = String(Math.floor(Math.random() * 10));
+            }
           } else {
             currentDigitsArr[chosenOffset] = String(Math.floor(Math.random() * 10));
           }
@@ -347,7 +369,7 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
       clearTimeout(animTimeoutRef.current);
       clearInterval(timerIntervalRef.current);
     };
-  }, [spinning, winnerCode, targetCode, targetPref, targetDigits, targetLen, prefLen, matchingPrefixes, soundEnabled, onCountdownZero]);
+  }, [spinning, isForceLocked, winnerCode, targetCode, targetPref, targetDigits, targetLen, prefLen, matchingPrefixes, soundEnabled, onCountdownZero]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
@@ -426,6 +448,31 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
               🎰 SHUFFLING ALL EMPLOYEES • HUNTING WINNER 🎰
             </motion.div>
           )
+        ) : (isForceLocked || phaseStage === 'locked') ? (
+          <motion.div
+            animate={{
+              scale: [1, 1.05, 1],
+              boxShadow: [
+                '0 0 20px rgba(255,215,0,0.7)',
+                '0 0 36px rgba(255,215,0,1)',
+                '0 0 20px rgba(255,215,0,0.7)',
+              ],
+            }}
+            transition={{ duration: 0.6, repeat: Infinity }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'linear-gradient(90deg, #8B6508 0%, #D4AF37 50%, #8B6508 100%)',
+              padding: '6px 26px',
+              borderRadius: 24,
+              border: '2px solid #FFFFFF',
+            }}
+          >
+            <span style={{ fontSize: 13, color: '#FFFFFF', fontWeight: 950, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+              🎯 WINNER LOCKED • #{targetPref}{targetDigits} 🎯
+            </span>
+          </motion.div>
         ) : (
           <div
             style={{
@@ -496,11 +543,11 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
       <div
         style={{
           display: 'flex',
-          gap: chars.length >= 9 ? 7 : 9,
+          gap: chars.length >= 9 ? 'clamp(5px, 0.8vw, 7px)' : 'clamp(6px, 1vw, 9px)',
           justifyContent: 'center',
           alignItems: 'center',
           background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,248,242,0.95) 100%)',
-          padding: chars.length >= 9 ? '16px 20px' : '18px 26px',
+          padding: chars.length >= 9 ? 'clamp(10px, 1.6vh, 16px) clamp(14px, 2vw, 20px)' : 'clamp(12px, 1.8vh, 18px) clamp(18px, 2.5vw, 26px)',
           borderRadius: 22,
           boxShadow: '0 16px 45px rgba(200,16,46,0.18), 0 2px 8px rgba(0,0,0,0.06)',
           border: '3px solid #D4AF37',
@@ -509,7 +556,7 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
         {chars.map((char, i) => {
           const isHighlight = highlightIndices.includes(i);
           const isSuspenseDigit = spinning && phaseStage === 'suspense' && isHighlight;
-          const isLockedStage = phaseStage === 'locked';
+          const isLockedStage = phaseStage === 'locked' || isForceLocked;
 
           return (
             <motion.div
@@ -535,8 +582,8 @@ function SlotDrum({ spinning, winnerCode, sampleCodes, currentGroup = 1, soundEn
                   : { duration: 0.3 }
               }
               style={{
-                width: chars.length >= 9 ? 54 : 60,
-                height: chars.length >= 9 ? 80 : 84,
+                width: chars.length >= 9 ? 'clamp(44px, 4vw, 54px)' : 'clamp(48px, 4.4vw, 60px)',
+                height: chars.length >= 9 ? 'clamp(66px, 9.5vh, 80px)' : 'clamp(70px, 10vh, 84px)',
                 borderRadius: 14,
                 background: isLockedStage
                   ? 'linear-gradient(180deg, #D4AF37 0%, #B8860B 40%, #8A6508 100%)'
@@ -748,14 +795,15 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
             : 'linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(10, 5, 20, 0.6) 100%)',
           border: isDrawn ? `2px solid ${grpColor}` : '1.5px dashed rgba(255, 255, 255, 0.18)',
           borderRadius: 14,
-          padding: '11px 14px',
+          padding: 'clamp(4px, 0.8vh, 8px) clamp(8px, 1vw, 12px)',
           boxShadow: isDrawn
             ? `0 6px 20px ${grpColor}33, inset 0 0 14px ${grpColor}15`
             : 'none',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          minHeight: 118,
+          flex: 1,
+          minHeight: 0,
           position: 'relative',
           overflow: 'hidden',
           transition: 'all 0.3s ease',
@@ -782,10 +830,10 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
               style={{
                 background: grpColor,
                 color: '#ffffff',
-                fontSize: 11,
+                fontSize: 'clamp(9.5px, 1.2vh, 11px)',
                 fontWeight: 900,
-                padding: '2.5px 9px',
-                borderRadius: 6,
+                padding: '1.5px 7px',
+                borderRadius: 5,
                 letterSpacing: 0.8,
                 boxShadow: `0 2px 8px ${grpColor}66`,
               }}
@@ -794,7 +842,7 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
             </span>
             <span
               style={{
-                fontSize: 10,
+                fontSize: 'clamp(9px, 1.1vh, 10px)',
                 fontWeight: 800,
                 color: isDrawn ? '#e2e8f0' : '#94a3b8',
                 letterSpacing: 0.5,
@@ -813,10 +861,10 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
                 border: '1px solid rgba(255, 215, 0, 0.6)',
                 color: '#FFD700',
                 fontWeight: 900,
-                fontSize: 12.5,
+                fontSize: 'clamp(10px, 1.3vh, 12px)',
                 letterSpacing: 0.8,
-                padding: '2px 8px',
-                borderRadius: 6,
+                padding: '1.5px 7px',
+                borderRadius: 5,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 4,
@@ -831,16 +879,16 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
                 background: 'rgba(245, 158, 11, 0.15)',
                 border: '1px solid rgba(245, 158, 11, 0.4)',
                 color: '#fcd34d',
-                fontSize: 10.5,
+                fontSize: 'clamp(9px, 1.1vh, 10px)',
                 fontWeight: 700,
-                padding: '2px 7px',
+                padding: '1.5px 6px',
                 borderRadius: 5,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 4,
+                gap: 3,
               }}
             >
-              <Clock size={11} /> Pending Draw
+              <Clock size={10} /> Pending Draw
             </span>
           )}
         </div>
@@ -852,9 +900,9 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
               style={{
                 color: '#ffffff',
                 fontWeight: 950,
-                fontSize: 16,
-                lineHeight: 1.2,
-                marginTop: 4,
+                fontSize: 'clamp(12px, 1.6vh, 15px)',
+                lineHeight: 1.15,
+                marginTop: 2,
                 letterSpacing: 0.3,
                 textShadow: '0 2px 6px rgba(0,0,0,0.5)',
                 whiteSpace: 'nowrap',
@@ -865,14 +913,14 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
             >
               {item.employee?.name || 'Winner'}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: 'clamp(9.5px, 1.1vh, 10.5px)',
                   fontWeight: 700,
                   color: '#cbd5e1',
                   background: 'rgba(255, 255, 255, 0.08)',
-                  padding: '1.5px 7px',
+                  padding: '1px 6px',
                   borderRadius: 4,
                 }}
               >
@@ -880,11 +928,11 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
               </span>
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: 'clamp(9.5px, 1.1vh, 10.5px)',
                   fontWeight: 700,
                   color: '#cbd5e1',
                   background: 'rgba(255, 255, 255, 0.08)',
-                  padding: '1.5px 7px',
+                  padding: '1px 6px',
                   borderRadius: 4,
                 }}
               >
@@ -893,11 +941,11 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
             </div>
           </div>
         ) : (
-          <div style={{ padding: '6px 0', textAlign: 'center' }}>
-            <div style={{ color: '#cbd5e1', fontSize: 13, fontWeight: 700, letterSpacing: 0.4 }}>
+          <div style={{ padding: '2px 0', textAlign: 'center' }}>
+            <div style={{ color: '#cbd5e1', fontSize: 'clamp(10.5px, 1.3vh, 12px)', fontWeight: 700, letterSpacing: 0.4 }}>
               ⏳ Awaiting Lucky Spin
             </div>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
+            <div style={{ color: '#64748b', fontSize: 'clamp(9px, 1.1vh, 10px)', marginTop: 1 }}>
               Winner will be revealed live on screen
             </div>
           </div>
@@ -906,23 +954,23 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
         {/* Bottom Prize Bar */}
         <div
           style={{
-            marginTop: 5,
-            padding: '4px 9px',
-            borderRadius: 7,
+            marginTop: 3,
+            padding: '2px 8px',
+            borderRadius: 6,
             background: isDrawn
               ? 'linear-gradient(90deg, rgba(212, 175, 55, 0.22) 0%, rgba(255, 215, 0, 0.12) 100%)'
               : 'rgba(255, 255, 255, 0.03)',
             border: isDrawn ? '1px solid rgba(255, 215, 0, 0.55)' : '1px dashed rgba(255, 255, 255, 0.15)',
             color: isDrawn ? '#FFD700' : '#94a3b8',
-            fontSize: 11.5,
+            fontSize: 'clamp(9.5px, 1.2vh, 11px)',
             fontWeight: 800,
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 5,
             boxShadow: isDrawn ? '0 2px 8px rgba(255, 215, 0, 0.15)' : 'none',
           }}
         >
-          <Gift size={13} style={{ color: isDrawn ? '#FFD700' : '#64748b', flexShrink: 0 }} />
+          <Gift size={11} style={{ color: isDrawn ? '#FFD700' : '#64748b', flexShrink: 0 }} />
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {item.prize?.name
               ? `${item.prize.name} ${item.prize.description ? `(${item.prize.description})` : ''}`
@@ -943,40 +991,40 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
         alignItems: 'center',
         justifyContent: 'flex-start',
         position: 'relative',
-        padding: '2px 16px 12px',
-        overflowY: 'auto',
+        padding: 'clamp(2px, 0.6vh, 6px) clamp(10px, 1.5vw, 16px) clamp(4px, 1vh, 8px)',
+        overflow: 'hidden',
       }}
     >
       <ContinuousSparkles />
 
       {/* ── CEREMONY HEADING ── */}
-      <div style={{ textAlign: 'center', marginBottom: 10, position: 'relative', zIndex: 2, flexShrink: 0 }}>
+      <div style={{ textAlign: 'center', marginBottom: 'clamp(3px, 0.8vh, 6px)', position: 'relative', zIndex: 2, flexShrink: 0 }}>
         <div
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
+            gap: 6,
             background: 'rgba(255, 215, 0, 0.15)',
             border: '1.5px solid rgba(255, 215, 0, 0.55)',
-            padding: '3px 18px',
+            padding: '2px 14px',
             borderRadius: 30,
-            marginBottom: 4,
+            marginBottom: 2,
             boxShadow: '0 0 16px rgba(255, 215, 0, 0.25)',
           }}
         >
-          <Sparkles size={15} style={{ color: '#FFD700' }} />
-          <span style={{ color: '#FFD700', fontSize: 12.5, fontWeight: 900, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+          <Sparkles size={12} style={{ color: '#FFD700' }} />
+          <span style={{ color: '#FFD700', fontSize: 'clamp(10px, 1.2vh, 12px)', fontWeight: 900, letterSpacing: 1.5, textTransform: 'uppercase' }}>
             ✦ GRAND LUCKY DRAW CHAMPIONS 2026 ✦
           </span>
-          <Sparkles size={15} style={{ color: '#FFD700' }} />
+          <Sparkles size={12} style={{ color: '#FFD700' }} />
         </div>
 
         <motion.h1
-          animate={{ scale: [1, 1.018, 1] }}
+          animate={{ scale: [1, 1.015, 1] }}
           transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
           style={{
             margin: 0,
-            fontSize: 'clamp(24px, 3.4vw, 38px)',
+            fontSize: 'clamp(20px, 2.6vw, 30px)',
             fontWeight: 950,
             letterSpacing: 2,
             fontFamily: 'Georgia, serif',
@@ -990,13 +1038,13 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
           👑 PG - FORTUNE FIESTA WINNERS 👑
         </motion.h1>
 
-        <div style={{ fontSize: 13, color: '#fbcfe8', fontWeight: 700, letterSpacing: 0.8, marginTop: 2 }}>
+        <div style={{ fontSize: 'clamp(10px, 1.3vh, 12px)', color: '#fbcfe8', fontWeight: 700, letterSpacing: 0.8, marginTop: 1 }}>
           ✨ Heartiest Congratulations to our Honored VIP Guest Winner & Employee Champions! ✨
         </div>
       </div>
 
       {/* ── 1. VIP GUEST WINNER SECTION (FIRST, HERO SHOWCASE) ── */}
-      <div style={{ width: '100%', maxWidth: 1160, marginBottom: 12, position: 'relative', zIndex: 2, flexShrink: 0 }}>
+      <div style={{ width: '100%', maxWidth: 1160, marginBottom: 'clamp(4px, 0.8vh, 8px)', position: 'relative', zIndex: 2, flexShrink: 0 }}>
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1004,14 +1052,14 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
           style={{
             background: 'linear-gradient(135deg, rgba(74, 18, 78, 0.95) 0%, rgba(24, 12, 48, 0.95) 50%, rgba(92, 24, 118, 0.95) 100%)',
             border: '2.5px solid #FFD700',
-            borderRadius: 18,
-            padding: '14px 24px',
+            borderRadius: 16,
+            padding: 'clamp(6px, 1vh, 10px) clamp(12px, 1.5vw, 20px)',
             boxShadow: '0 0 35px rgba(255, 215, 0, 0.35), 0 10px 30px rgba(0,0,0,0.6), inset 0 0 20px rgba(255, 215, 0, 0.12)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: 16,
+            gap: 12,
             position: 'relative',
             overflow: 'hidden',
           }}
@@ -1031,14 +1079,14 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
 
           {guestWinner ? (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 18, minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
                 {/* Crown Medallion */}
                 <motion.div
                   animate={{ rotate: [0, 2, -2, 0], scale: [1, 1.03, 1] }}
                   transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
                   style={{
-                    width: 68,
-                    height: 68,
+                    width: 'clamp(44px, 5.5vh, 58px)',
+                    height: 'clamp(44px, 5.5vh, 58px)',
                     borderRadius: '50%',
                     background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #B8860B 100%)',
                     display: 'flex',
@@ -1049,7 +1097,7 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
                     flexShrink: 0,
                   }}
                 >
-                  <Crown size={38} style={{ color: '#4A154B', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+                  <Crown size={28} style={{ color: '#4A154B', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
                 </motion.div>
 
                 <div style={{ minWidth: 0 }}>
@@ -1059,9 +1107,9 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
                         background: 'linear-gradient(90deg, #FFD700, #FFA500)',
                         color: '#3b0764',
                         fontWeight: 950,
-                        fontSize: 11.5,
-                        padding: '2.5px 11px',
-                        borderRadius: 6,
+                        fontSize: 'clamp(9.5px, 1.2vh, 11px)',
+                        padding: '2px 9px',
+                        borderRadius: 5,
                         letterSpacing: 1,
                         boxShadow: '0 2px 8px rgba(255, 215, 0, 0.4)',
                       }}
@@ -1073,9 +1121,9 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
                         background: '#7B1FA2',
                         color: '#FFD700',
                         fontWeight: 900,
-                        fontSize: 11.5,
-                        padding: '2px 9px',
-                        borderRadius: 6,
+                        fontSize: 'clamp(9.5px, 1.2vh, 11px)',
+                        padding: '1.5px 8px',
+                        borderRadius: 5,
                         border: '1.5px solid #FFD700',
                         boxShadow: '0 0 8px rgba(123, 31, 162, 0.6)',
                       }}
@@ -1086,11 +1134,11 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
 
                   <div
                     style={{
-                      fontSize: 'clamp(22px, 2.6vw, 30px)',
+                      fontSize: 'clamp(18px, 2.4vw, 24px)',
                       fontWeight: 950,
                       color: '#ffffff',
                       fontFamily: 'Georgia, serif',
-                      marginTop: 4,
+                      marginTop: 2,
                       letterSpacing: 0.5,
                       textShadow: '0 0 16px rgba(255, 215, 0, 0.4), 0 2px 8px rgba(0,0,0,0.8)',
                       whiteSpace: 'nowrap',
@@ -1101,12 +1149,12 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
                     {guestWinner.name}
                   </div>
 
-                  <div style={{ fontSize: 13, color: '#e0c3fc', fontWeight: 700, marginTop: 3, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: 4, color: '#ffffff' }}>
+                  <div style={{ fontSize: 'clamp(10px, 1.2vh, 12px)', color: '#e0c3fc', fontWeight: 700, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ background: 'rgba(255,255,255,0.1)', padding: '1.5px 7px', borderRadius: 4, color: '#ffffff' }}>
                       🏭 Guest Unit: <b>{guestWinner.unit || 'PGTL'}</b>
                     </span>
                     {guestWinner.guestNumber && (
-                      <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: 4, color: '#FFD700' }}>
+                      <span style={{ background: 'rgba(255,255,255,0.1)', padding: '1.5px 7px', borderRadius: 4, color: '#FFD700' }}>
                         🎟 Pass ID: #{guestWinner.guestNumber}
                       </span>
                     )}
@@ -1121,32 +1169,32 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
                 style={{
                   background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.22) 0%, rgba(139, 92, 246, 0.15) 100%)',
                   border: '2px solid #FFD700',
-                  borderRadius: 14,
-                  padding: '11px 20px',
+                  borderRadius: 12,
+                  padding: '6px 14px',
                   boxShadow: '0 6px 20px rgba(255, 215, 0, 0.35)',
-                  minWidth: 260,
+                  minWidth: 200,
                   textAlign: 'left',
                   flexShrink: 0,
                 }}
               >
-                <div style={{ color: '#FFD700', fontSize: 11, fontWeight: 950, letterSpacing: 1.5, display: 'flex', alignItems: 'center', gap: 6, textTransform: 'uppercase' }}>
-                  <Award size={15} style={{ color: '#FFD700' }} /> WON GRAND PRIZE
+                <div style={{ color: '#FFD700', fontSize: 'clamp(9px, 1.1vh, 10.5px)', fontWeight: 950, letterSpacing: 1.2, display: 'flex', alignItems: 'center', gap: 5, textTransform: 'uppercase' }}>
+                  <Award size={13} style={{ color: '#FFD700' }} /> WON GRAND PRIZE
                 </div>
-                <div style={{ color: '#ffffff', fontSize: 20, fontWeight: 950, marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Car size={22} style={{ color: '#FFD700' }} />
+                <div style={{ color: '#ffffff', fontSize: 'clamp(14px, 1.8vh, 17px)', fontWeight: 950, marginTop: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Car size={16} style={{ color: '#FFD700' }} />
                   <span>{guestPrize?.name || 'CAR (GRAND PRIZE)'}</span>
                 </div>
                 {guestPrize?.description && (
-                  <div style={{ color: '#fef08a', fontSize: 12, marginTop: 2, fontWeight: 600 }}>
+                  <div style={{ color: '#fef08a', fontSize: 'clamp(9.5px, 1.1vh, 11px)', marginTop: 1, fontWeight: 600 }}>
                     {guestPrize.description}
                   </div>
                 )}
               </motion.div>
             </>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', justifyContent: 'center', padding: '10px 0' }}>
-              <Crown size={32} style={{ color: '#FFD700' }} />
-              <div style={{ color: '#FFD700', fontSize: 17, fontWeight: 800 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', justifyContent: 'center', padding: '6px 0' }}>
+              <Crown size={22} style={{ color: '#FFD700' }} />
+              <div style={{ color: '#FFD700', fontSize: 'clamp(12px, 1.6vh, 15px)', fontWeight: 800 }}>
                 VIP Guest Lucky Winner will be drawn live in the Casino Roulette Zone!
               </div>
             </div>
@@ -1160,7 +1208,7 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 14,
+            gap: 'clamp(6px, 1vw, 12px)',
             height: '100%',
           }}
         >
@@ -1169,23 +1217,24 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
             style={{
               background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(10, 15, 30, 0.95) 100%)',
               border: '2px solid #3b82f6',
-              borderRadius: 16,
-              padding: '12px 14px',
+              borderRadius: 14,
+              padding: 'clamp(6px, 1vh, 10px) clamp(8px, 1vw, 12px)',
               display: 'flex',
               flexDirection: 'column',
-              gap: 10,
+              height: '100%',
+              minHeight: 0,
               boxShadow: '0 8px 24px rgba(59, 130, 246, 0.25)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid rgba(59, 130, 246, 0.35)', paddingBottom: 8 }}>
-              <span style={{ color: '#60a5fa', fontWeight: 950, fontSize: 14.5, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: 0.5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid rgba(59, 130, 246, 0.35)', paddingBottom: 'clamp(3px, 0.6vh, 6px)', marginBottom: 'clamp(3px, 0.6vh, 6px)' }}>
+              <span style={{ color: '#60a5fa', fontWeight: 950, fontSize: 'clamp(11.5px, 1.5vh, 13.5px)', display: 'flex', alignItems: 'center', gap: 5, letterSpacing: 0.5 }}>
                 🏆 GROUP A (Rounds 1A–1C)
               </span>
-              <span style={{ background: '#1d4ed8', color: '#ffffff', fontSize: 11.5, fontWeight: 900, padding: '2px 10px', borderRadius: 12, boxShadow: '0 0 10px rgba(29, 78, 216, 0.6)' }}>
+              <span style={{ background: '#1d4ed8', color: '#ffffff', fontSize: 'clamp(9.5px, 1.2vh, 11px)', fontWeight: 900, padding: '1.5px 8px', borderRadius: 10, boxShadow: '0 0 10px rgba(29, 78, 216, 0.6)' }}>
                 {groupA.filter(x => x.winnerNumber || x.employee).length} / 3 WON
               </span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(3px, 0.7vh, 7px)', flex: 1, minHeight: 0, justifyContent: 'space-between' }}>
               {groupA.map(renderEmpCard)}
             </div>
           </div>
@@ -1195,23 +1244,24 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
             style={{
               background: 'linear-gradient(180deg, rgba(24, 12, 45, 0.85) 0%, rgba(15, 8, 30, 0.95) 100%)',
               border: '2px solid #a855f7',
-              borderRadius: 16,
-              padding: '12px 14px',
+              borderRadius: 14,
+              padding: 'clamp(6px, 1vh, 10px) clamp(8px, 1vw, 12px)',
               display: 'flex',
               flexDirection: 'column',
-              gap: 10,
+              height: '100%',
+              minHeight: 0,
               boxShadow: '0 8px 24px rgba(168, 85, 247, 0.25)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid rgba(168, 85, 247, 0.35)', paddingBottom: 8 }}>
-              <span style={{ color: '#c084fc', fontWeight: 950, fontSize: 14.5, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: 0.5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid rgba(168, 85, 247, 0.35)', paddingBottom: 'clamp(3px, 0.6vh, 6px)', marginBottom: 'clamp(3px, 0.6vh, 6px)' }}>
+              <span style={{ color: '#c084fc', fontWeight: 950, fontSize: 'clamp(11.5px, 1.5vh, 13.5px)', display: 'flex', alignItems: 'center', gap: 5, letterSpacing: 0.5 }}>
                 🏆 GROUP B (Rounds 2A–2C)
               </span>
-              <span style={{ background: '#7e22ce', color: '#ffffff', fontSize: 11.5, fontWeight: 900, padding: '2px 10px', borderRadius: 12, boxShadow: '0 0 10px rgba(126, 34, 206, 0.6)' }}>
+              <span style={{ background: '#7e22ce', color: '#ffffff', fontSize: 'clamp(9.5px, 1.2vh, 11px)', fontWeight: 900, padding: '1.5px 8px', borderRadius: 10, boxShadow: '0 0 10px rgba(126, 34, 206, 0.6)' }}>
                 {groupB.filter(x => x.winnerNumber || x.employee).length} / 3 WON
               </span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(3px, 0.7vh, 7px)', flex: 1, minHeight: 0, justifyContent: 'space-between' }}>
               {groupB.map(renderEmpCard)}
             </div>
           </div>
@@ -1221,23 +1271,24 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
             style={{
               background: 'linear-gradient(180deg, rgba(6, 30, 24, 0.85) 0%, rgba(4, 20, 16, 0.95) 100%)',
               border: '2px solid #10b981',
-              borderRadius: 16,
-              padding: '12px 14px',
+              borderRadius: 14,
+              padding: 'clamp(6px, 1vh, 10px) clamp(8px, 1vw, 12px)',
               display: 'flex',
               flexDirection: 'column',
-              gap: 10,
+              height: '100%',
+              minHeight: 0,
               boxShadow: '0 8px 24px rgba(16, 185, 129, 0.25)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid rgba(16, 185, 129, 0.35)', paddingBottom: 8 }}>
-              <span style={{ color: '#34d399', fontWeight: 950, fontSize: 14.5, display: 'flex', alignItems: 'center', gap: 6, letterSpacing: 0.5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid rgba(16, 185, 129, 0.35)', paddingBottom: 'clamp(3px, 0.6vh, 6px)', marginBottom: 'clamp(3px, 0.6vh, 6px)' }}>
+              <span style={{ color: '#34d399', fontWeight: 950, fontSize: 'clamp(11.5px, 1.5vh, 13.5px)', display: 'flex', alignItems: 'center', gap: 5, letterSpacing: 0.5 }}>
                 🏆 GROUP C (Rounds 3A–3C)
               </span>
-              <span style={{ background: '#047857', color: '#ffffff', fontSize: 11.5, fontWeight: 900, padding: '2px 10px', borderRadius: 12, boxShadow: '0 0 10px rgba(4, 120, 87, 0.6)' }}>
+              <span style={{ background: '#047857', color: '#ffffff', fontSize: 'clamp(9.5px, 1.2vh, 11px)', fontWeight: 900, padding: '1.5px 8px', borderRadius: 10, boxShadow: '0 0 10px rgba(4, 120, 87, 0.6)' }}>
                 {groupC.filter(x => x.winnerNumber || x.employee).length} / 3 WON
               </span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(3px, 0.7vh, 7px)', flex: 1, minHeight: 0, justifyContent: 'space-between' }}>
               {groupC.map(renderEmpCard)}
             </div>
           </div>
@@ -1272,6 +1323,10 @@ export default function LiveDraw() {
   const guestSpinStartTimeRef = useRef(0);
   const pendingGuestWinnerRef = useRef(null);
   const pendingGuestPrizeRef = useRef(null);
+
+  // Employee drum lock delay (keeps stopped drum visible on winner for 1.8s)
+  const [lockedDrumWinner, setLockedDrumWinner] = useState(null);
+  const lockedDrumTimerRef = useRef(null);
 
   // Preload celebration audios upfront for instant 0-delay playback
   useEffect(() => {
@@ -1349,6 +1404,8 @@ export default function LiveDraw() {
     },
     'game:start': () => {
       stopAllAudio();
+      if (lockedDrumTimerRef.current) clearTimeout(lockedDrumTimerRef.current);
+      setLockedDrumWinner(null);
       setActiveZone('employee');
       setGameStarted(true);
       setPhase('idle');
@@ -1356,6 +1413,8 @@ export default function LiveDraw() {
     },
     'game:spin_start': (data) => {
       stopAllAudio();
+      if (lockedDrumTimerRef.current) clearTimeout(lockedDrumTimerRef.current);
+      setLockedDrumWinner(null);
       setActiveZone('employee');
       setPhase('spinning');
       setWinner(null);
@@ -1371,17 +1430,38 @@ export default function LiveDraw() {
       }
     },
     'game:winner_revealed': (data) => {
-      setPhase('revealed');
       const rNum = data.roundNo || data.round || currentRound;
-      setWinner({ ...data, roundNo: rNum, round: rNum });
-      setPrize(data.prize);
-      setSpinData(null);
+      const fullWinner = { ...data, roundNo: rNum, round: rNum };
+      const winnerIdCode = data.winnerNumber || data.employeeCode || (data.employee?.payCode);
 
-      if (soundEnabled) {
-        stopEmpSong();
-        playWinnerExplosion();
+      // If drum was spinning: hold stopped drum showing winner in gold for 1.8s so audience can clearly verify!
+      if (phase === 'spinning') {
+        if (soundEnabled) {
+          stopEmpSong();
+          playWinnerExplosion();
+        }
+        fireConfetti();
+        setLockedDrumWinner(winnerIdCode);
+
+        if (lockedDrumTimerRef.current) clearTimeout(lockedDrumTimerRef.current);
+        lockedDrumTimerRef.current = setTimeout(() => {
+          setLockedDrumWinner(null);
+          setPhase('revealed');
+          setWinner(fullWinner);
+          setPrize(data.prize);
+          setSpinData(null);
+        }, 1800);
+      } else {
+        setPhase('revealed');
+        setWinner(fullWinner);
+        setPrize(data.prize);
+        setSpinData(null);
+        if (soundEnabled) {
+          stopEmpSong();
+          playWinnerExplosion();
+        }
+        fireConfetti();
       }
-      fireConfetti();
 
       // Update previous winners
       setPrevWinners(prev => {
@@ -1392,7 +1472,7 @@ export default function LiveDraw() {
             roundNo: rNum,
             round: rNum,
             group: data.group || roundToGroup(rNum),
-            winnerNumber: data.winnerNumber || data.employeeCode,
+            winnerNumber: winnerIdCode,
             employee: data.employee,
             prize: data.prize,
           },
@@ -1400,6 +1480,8 @@ export default function LiveDraw() {
       });
     },
     'game:next_round': ({ round, group }) => {
+      if (lockedDrumTimerRef.current) clearTimeout(lockedDrumTimerRef.current);
+      setLockedDrumWinner(null);
       setPhase('idle');
       setCurrentRound(round);
       setCurrentGroup(group);
@@ -1424,6 +1506,8 @@ export default function LiveDraw() {
         .catch(() => {});
     },
     'game:reset': () => {
+      if (lockedDrumTimerRef.current) clearTimeout(lockedDrumTimerRef.current);
+      setLockedDrumWinner(null);
       setPhase('idle');
       setCurrentRound(1);
       setCurrentGroup(1);
@@ -1850,43 +1934,67 @@ export default function LiveDraw() {
             <span>LIVE</span>
           </div>
 
-          {/* Sound Control Icon Button (No Text Badge) */}
+          {/* Sleek, Borderless Classic Sound Control Icon */}
           <button
             onClick={toggleSound}
-            title={soundEnabled ? 'Click to Mute Sound' : 'Click to Enable Sound'}
-            aria-label={soundEnabled ? 'Mute Sound' : 'Enable Sound'}
+            title={soundEnabled ? 'Sound: ON (Click to Mute)' : 'Sound: MUTED (Click to Unmute)'}
+            aria-label={soundEnabled ? 'Mute Sound' : 'Unmute Sound'}
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: '50%',
-              background: soundEnabled
-                ? (activeZone === 'guest' || activeZone === 'fiesta_winners'
-                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.15) 100%)'
-                  : 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)')
-                : (activeZone === 'guest' || activeZone === 'fiesta_winners'
-                  ? 'rgba(239, 68, 68, 0.15)'
-                  : '#fff1f0'),
-              border: soundEnabled
-                ? '1.8px solid #10b981'
-                : '1.8px solid #ef4444',
-              color: soundEnabled
-                ? (activeZone === 'guest' || activeZone === 'fiesta_winners' ? '#34d399' : '#059669')
-                : '#dc2626',
-              boxShadow: soundEnabled
-                ? '0 0 14px rgba(16, 185, 129, 0.35)'
-                : '0 0 10px rgba(239, 68, 68, 0.2)',
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
               cursor: 'pointer',
+              padding: '4px 6px',
+              borderRadius: 8,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: 0,
-              transition: 'all 0.25s ease',
+              color: soundEnabled
+                ? (activeZone === 'guest' || activeZone === 'fiesta_winners' ? '#34d399' : '#059669')
+                : (activeZone === 'guest' || activeZone === 'fiesta_winners' ? '#f87171' : '#dc2626'),
+              transition: 'transform 0.2s ease, background 0.2s ease, color 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.18)';
+              e.currentTarget.style.background = activeZone === 'guest' || activeZone === 'fiesta_winners'
+                ? 'rgba(255, 255, 255, 0.1)'
+                : 'rgba(0, 0, 0, 0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.background = 'transparent';
             }}
           >
             {soundEnabled ? (
-              <Volume2 size={20} style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))' }} />
+              /* Classic FontAwesome-Style Volume High Icon (Megaphone + 2 sound waves) */
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                style={{
+                  filter: activeZone === 'guest' || activeZone === 'fiesta_winners'
+                    ? 'drop-shadow(0 0 6px rgba(52, 211, 153, 0.7))'
+                    : 'drop-shadow(0 1px 2px rgba(5, 150, 105, 0.3))'
+                }}
+              >
+                <path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zm-2.5-1.23L6.5 6H3c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h3.5l5 4c.67.53 1.5.06 1.5-.8V2.8c0-.86-.83-1.33-1.5-.8zm4.5 10c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
+              </svg>
             ) : (
-              <VolumeX size={20} style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))' }} />
+              /* Classic FontAwesome-Style Volume Mute Icon (Megaphone + diagonal slash) */
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                style={{
+                  filter: activeZone === 'guest' || activeZone === 'fiesta_winners'
+                    ? 'drop-shadow(0 0 6px rgba(248, 113, 113, 0.7))'
+                    : 'drop-shadow(0 1px 2px rgba(220, 38, 38, 0.3))'
+                }}
+              >
+                <path d="M4.34 2.93L2.93 4.34 7.29 8.7 6.5 9.33H3c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h3.5l5 4c.67.53 1.5.06 1.5-.8v-6.88l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81l2.48 2.48 1.41-1.41L4.34 2.93zM11.5 4.8v4.88l2.5 2.5V2.8c0-.86-.83-1.33-1.5-.8l-1 1.2zm4.5 7.2c0-.52-.1-1.01-.27-1.47l1.59 1.59c.11-.4.18-.82.18-1.26zm3 0c0 1.25-.33 2.42-.91 3.44l1.52 1.52C20.48 15.52 21 13.82 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71z" />
+              </svg>
             )}
           </button>
 
@@ -2057,18 +2165,19 @@ export default function LiveDraw() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '4px 16px 36px',
+                padding: '4px 16px clamp(8px, 1.8vh, 24px)',
               }}
             >
               {/* 20-Second Drum Animation */}
-              {(gameStarted || phase === 'spinning') && (phase === 'spinning' || phase === 'idle') && (
+              {(gameStarted || phase === 'spinning' || lockedDrumWinner) && (phase === 'spinning' || phase === 'idle' || lockedDrumWinner) && (
                 <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <p style={{ color: '#555', fontSize: 16, marginBottom: 14, fontWeight: 700, letterSpacing: 0.5 }}>
-                    {phase === 'spinning' ? '🎵 EMP Draw Rolling • Shuffling Numbers...' : '⏳ Ready — Waiting for Admin to Spin'}
+                  <p style={{ color: '#555', fontSize: 'clamp(13px, 1.8vh, 16px)', marginBottom: 'clamp(6px, 1vh, 12px)', fontWeight: 700, letterSpacing: 0.5 }}>
+                    {lockedDrumWinner ? '🎯 WINNER LOCKED & CONFIRMED!' : phase === 'spinning' ? '🎵 EMP Draw Rolling • Shuffling Numbers...' : '⏳ Ready — Waiting for Admin to Spin'}
                   </p>
                   <SlotDrum
-                    spinning={phase === 'spinning'}
-                    winnerCode={spinData?.winnerCode || winner?.winnerNumber || winner?.employeeCode}
+                    spinning={phase === 'spinning' && !lockedDrumWinner}
+                    winnerCode={lockedDrumWinner || spinData?.winnerCode || winner?.winnerNumber || winner?.employeeCode}
+                    isForceLocked={Boolean(lockedDrumWinner)}
                     sampleCodes={spinData?.sampleCodes}
                     currentGroup={currentGroup}
                     soundEnabled={soundEnabled}
@@ -2077,14 +2186,15 @@ export default function LiveDraw() {
                         stopEmpSong();
                         playWinnerExplosion();
                       }
+                      fireConfetti();
                     }}
                   />
                 </div>
               )}
 
-              {/* SLOW, SUSPENSEFUL WINNER REVEAL */}
+              {/* SLOW, SUSPENSEFUL WINNER REVEAL (Appears after drum stops and locks) */}
               <AnimatePresence>
-                {phase === 'revealed' && winner && (
+                {phase === 'revealed' && !lockedDrumWinner && winner && (
                   <motion.div
                     initial={{ scale: 0.85, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -2094,15 +2204,15 @@ export default function LiveDraw() {
                       background: '#ffffff',
                       border: '3px solid #D4AF37',
                       borderRadius: 24,
-                      padding: '22px 36px',
+                      padding: 'clamp(12px, 2vh, 22px) clamp(16px, 2.5vw, 36px)',
                       textAlign: 'center',
                       boxShadow: '0 0 60px rgba(212,175,55,0.45), 0 16px 45px rgba(0,0,0,0.12)',
-                      maxWidth: 620,
+                      maxWidth: 'clamp(360px, 42vw, 600px)',
                       width: '100%',
                     }}
                   >
-                    <div style={{ fontSize: 36, marginBottom: 2 }}>🏆</div>
-                    <div style={{ fontSize: 12, color: '#C8102E', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 800 }}>
+                    <div style={{ fontSize: 'clamp(24px, 3.6vh, 36px)', marginBottom: 2 }}>🏆</div>
+                    <div style={{ fontSize: 'clamp(10px, 1.3vh, 12px)', color: '#C8102E', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 800 }}>
                       Round {ROUND_LABELS[currentRound]} • Lucky Winner
                     </div>
 
@@ -2112,14 +2222,14 @@ export default function LiveDraw() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.5 }}
                       style={{
-                        fontSize: 54,
+                        fontSize: 'clamp(34px, 5.2vh, 52px)',
                         fontWeight: 900,
                         fontFamily: 'Impact, Arial Black, sans-serif',
                         background: 'linear-gradient(135deg, #C8102E 0%, #D4AF37 60%, #8b0000 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                         lineHeight: 1.1,
-                        margin: '6px 0 4px',
+                        margin: '4px 0 2px',
                         letterSpacing: 2,
                       }}
                     >
@@ -2133,12 +2243,12 @@ export default function LiveDraw() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.9, duration: 0.6 }}
                         style={{
-                          fontSize: 25,
+                          fontSize: 'clamp(18px, 2.8vh, 24px)',
                           fontWeight: 900,
                           color: '#1a1a1a',
                           fontFamily: 'Georgia, serif',
-                          marginTop: 4,
-                          marginBottom: 4,
+                          marginTop: 3,
+                          marginBottom: 3,
                         }}
                       >
                         {winner.employee.name}
@@ -2233,10 +2343,10 @@ export default function LiveDraw() {
                     width: '100%',
                     maxWidth: 880,
                     background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 250, 244, 0.96) 60%, rgba(255, 243, 235, 0.94) 100%)',
-                    borderRadius: 26,
+                    borderRadius: 24,
                     border: '2.5px solid #D4AF37',
                     boxShadow: '0 24px 65px rgba(200, 16, 46, 0.16), 0 4px 18px rgba(0, 0, 0, 0.05), inset 0 0 20px rgba(255, 215, 0, 0.12)',
-                    padding: '26px 36px',
+                    padding: 'clamp(14px, 2vh, 24px) clamp(18px, 2.8vw, 36px)',
                     textAlign: 'center',
                     position: 'relative',
                     overflow: 'hidden',
@@ -2265,24 +2375,24 @@ export default function LiveDraw() {
                       gap: 8,
                       background: 'linear-gradient(90deg, #C8102E, #8B0000)',
                       color: '#FFD700',
-                      padding: '5px 22px',
+                      padding: '4px 18px',
                       borderRadius: 20,
-                      fontSize: 11.5,
+                      fontSize: 'clamp(10px, 1.2vh, 11.5px)',
                       fontWeight: 900,
                       letterSpacing: 1.5,
                       textTransform: 'uppercase',
                       boxShadow: '0 2px 10px rgba(200, 16, 46, 0.35)',
-                      marginBottom: 14,
+                      marginBottom: 'clamp(6px, 1vh, 12px)',
                       border: '1px solid #FFD700',
                     }}
                   >
-                    <Crown size={14} style={{ color: '#FFD700' }} />
+                    <Crown size={13} style={{ color: '#FFD700' }} />
                     <span>PG GROUP ANNUAL FESTIVE CELEBRATION 2026</span>
-                    <Crown size={14} style={{ color: '#FFD700' }} />
+                    <Crown size={13} style={{ color: '#FFD700' }} />
                   </motion.div>
 
                   {/* Official PG Full Logo Medallion (Uploaded with red crest + black PG) */}
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'clamp(6px, 1vh, 12px)' }}>
                     <motion.div
                       animate={{ y: [-3, 3, -3] }}
                       transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -2291,8 +2401,8 @@ export default function LiveDraw() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         background: '#ffffff',
-                        padding: '10px 34px',
-                        borderRadius: 18,
+                        padding: 'clamp(6px, 1vh, 10px) clamp(20px, 2.5vw, 34px)',
+                        borderRadius: 16,
                         boxShadow: '0 10px 30px rgba(200, 16, 46, 0.14), 0 0 24px rgba(212, 175, 55, 0.28)',
                         border: '2px solid #D4AF37',
                       }}
@@ -2301,7 +2411,7 @@ export default function LiveDraw() {
                         src={LOGO_FULL}
                         alt="PG Logo"
                         style={{
-                          height: 64,
+                          height: 'clamp(44px, 6vh, 60px)',
                           objectFit: 'contain',
                           filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))',
                         }}
@@ -2312,11 +2422,11 @@ export default function LiveDraw() {
                   {/* Grand Headline */}
                   <h1
                     style={{
-                      fontSize: 'clamp(26px, 3vw, 36px)',
+                      fontSize: 'clamp(22px, 2.8vw, 34px)',
                       fontWeight: 950,
                       color: '#8B0000',
                       fontFamily: 'Georgia, serif',
-                      margin: '0 0 4px',
+                      margin: '0 0 3px',
                       letterSpacing: 1,
                       textShadow: '0 2px 8px rgba(200, 16, 46, 0.2)',
                     }}
