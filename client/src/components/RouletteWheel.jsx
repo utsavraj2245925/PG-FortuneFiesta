@@ -589,22 +589,37 @@ export default function RouletteWheel({
             {renderWheel()}
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.3 }}
+              animate={{
+                scale: [1, 1.03, 1],
+                opacity: 1,
+                boxShadow: [
+                  '0 0 16px rgba(255,215,0,0.45), inset 0 0 10px rgba(255,215,0,0.2)',
+                  '0 0 32px rgba(255,215,0,0.85), inset 0 0 15px rgba(255,215,0,0.4)',
+                  '0 0 16px rgba(255,215,0,0.45), inset 0 0 10px rgba(255,215,0,0.2)',
+                ],
+              }}
+              transition={{
+                scale: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
+                boxShadow: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
+                opacity: { duration: 0.4, delay: 0.2 },
+              }}
               style={{
-                fontSize: 12,
-                fontWeight: 800,
+                fontSize: 12.5,
+                fontWeight: 900,
                 color: '#FFD700',
-                letterSpacing: 1.2,
+                letterSpacing: 1.5,
                 textTransform: 'uppercase',
-                background: 'rgba(255,215,0,0.15)',
-                padding: '4px 16px',
-                borderRadius: 20,
-                border: '1.5px solid rgba(255,215,0,0.4)',
-                boxShadow: '0 0 15px rgba(255,215,0,0.3)',
+                background: 'linear-gradient(90deg, rgba(74, 21, 75, 0.95) 0%, rgba(138, 43, 226, 0.45) 50%, rgba(74, 21, 75, 0.95) 100%)',
+                padding: '6px 22px',
+                borderRadius: 24,
+                border: '2px solid #FFD700',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                textShadow: '0 0 12px rgba(255,215,0,0.8)',
               }}
             >
-              🎯 Ball Settled on Slot #{winner.serialNo || winningSerialNo}
+              👑 DESTINY HAS CHOSEN • LUCKY VIP SLOT #{winner.serialNo || winningSerialNo} 👑
             </motion.div>
           </div>
 
