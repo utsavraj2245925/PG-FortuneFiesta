@@ -5,6 +5,10 @@
       "destination": "https://pg-fortune-fiesta-server.onrender.com/api/:path*"
     },
     {
+      "source": "/uploads/:path*",
+      "destination": "https://pg-fortune-fiesta-server.onrender.com/uploads/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -81,9 +81,18 @@ io.on('connection', (socket) => {
 // Only listen on a port if executed directly (e.g. `node server.js` locally)
 // In Vercel serverless, do NOT call server.listen() to prevent EADDRINUSE crashes!
 if (require.main === module && !process.env.VERCEL) {
-  server.listen(process.env.PORT || 5000, () =>
-    console.log(`Server running on port ${process.env.PORT || 5000}`)
-  );
+  server.listen(process.env.PORT || 5000, () => {
+    console.log(`Server running on port ${process.env.PORT || 5000}`);
+
+    // Self-ping to prevent Render Free-tier instance from sleeping after 15m inactivity
+    const renderUrl = process.env.RENDER_EXTERNAL_URL || 'https://pg-fortune-fiesta-server.onrender.com';
+    try {
+      const client = renderUrl.startsWith('https') ? require('https') : require('http');
+      setInterval(() => {
+        client.get(renderUrl, () => {}).on('error', () => {});
+      }, 10 * 60 * 1000);
+    } catch {}
+  });
 }
 
 // Export Express app as request handler for Vercel Serverless

@@ -662,6 +662,16 @@ export function stopAllAudio() {
   safeStopAudio(winnerExplosionAudio);
   winnerExplosionAudio = null;
 
+  safeStopAudio(guestWinnerSongAudio);
+  guestWinnerSongAudio = null;
+
+  if (crackerTimer) {
+    clearTimeout(crackerTimer);
+    crackerTimer = null;
+  }
+  safeStopAudio(crackerAudio);
+  crackerAudio = null;
+
   activeAudios.forEach(a => {
     safeStopAudio(a);
   });

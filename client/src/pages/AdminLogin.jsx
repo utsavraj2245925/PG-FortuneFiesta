@@ -21,7 +21,7 @@ export default function AdminLogin() {
       if (e.response && e.response.data?.message) {
         message.error(e.response.data.message);
       } else {
-        message.error('Cannot connect to backend server. Please verify backend is running on port 5000.');
+        message.error('Connecting to backend server (waking up free instance)... Please wait 10 seconds and try again.');
       }
     } finally {
       setLoading(false);

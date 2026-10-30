@@ -5,3 +5,5 @@ dist/
 .DS_Store
 
 scratch/
+
+server/migrate_to_atlas.js

@@ -1364,6 +1364,48 @@ export default function LiveDraw() {
   };
 
   useSocket({
+    'connect': () => {
+      // Re-sync on connect/reconnect (handles network recovery & wake-up from sleep)
+      fetch('/api/game/public-state')
+        .then(r => r.json())
+        .then(d => {
+          if (d?.state) {
+            setCurrentRound(d.state.currentRound || 1);
+            setCurrentGroup(roundToGroup(d.state.currentRound || 1));
+            setGameStarted(d.state.isActive || false);
+            if (d.state.status === 'idle' || d.state.status === 'revealed') setPhase(d.state.status);
+            if (d.state.showFiestaWinners !== undefined) {
+              setShowFiestaWinners(d.state.showFiestaWinners);
+              if (d.state.showFiestaWinners) {
+                stopAllAudio();
+                setActiveZone('fiesta_winners');
+              }
+            }
+          }
+          if (d?.winners) {
+            setPrevWinners(
+              d.winners.map(w => ({
+                roundNo: w.roundNo || w.round,
+                round: w.roundNo || w.round,
+                group: w.group || roundToGroup(w.roundNo || w.round || 1),
+                winnerNumber: w.winnerNumber || w.employeeCode,
+                employee: w.employee,
+                prize: w.prize,
+              }))
+            );
+          }
+        })
+        .catch(() => {});
+      fetch('/api/guests/state')
+        .then(r => r.json())
+        .then(st => {
+          if (st?.winner) {
+            setGuestWinner(st.winner);
+            setGuestPrize(st.prize);
+          }
+        })
+        .catch(() => {});
+    },
     'game:state': ({ state }) => {
       if (state) {
         setCurrentRound(state.currentRound || 1);
@@ -1727,12 +1769,42 @@ export default function LiveDraw() {
     };
   }, [activeZone, soundEnabled]);
 
-  // Stop all audio when browser tab is hidden / minimized or user navigates away
+  // Stop all audio when browser tab is hidden / minimized; resync and resume when tab returns
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         stopAllAudio();
       } else {
+        // Tab became visible: resync latest state from server
+        fetch('/api/game/public-state')
+          .then(r => r.json())
+          .then(d => {
+            if (d?.state) {
+              setCurrentRound(d.state.currentRound || 1);
+              setCurrentGroup(roundToGroup(d.state.currentRound || 1));
+              setGameStarted(d.state.isActive || false);
+              if (d.state.status === 'idle' || d.state.status === 'revealed') {
+                setPhase(d.state.status);
+              }
+              if (d.state.showFiestaWinners !== undefined) {
+                setShowFiestaWinners(d.state.showFiestaWinners);
+              }
+            }
+            if (d?.winners) {
+              setPrevWinners(
+                d.winners.map(w => ({
+                  roundNo: w.roundNo || w.round,
+                  round: w.roundNo || w.round,
+                  group: w.group || roundToGroup(w.roundNo || w.round || 1),
+                  winnerNumber: w.winnerNumber || w.employeeCode,
+                  employee: w.employee,
+                  prize: w.prize,
+                }))
+              );
+            }
+          })
+          .catch(() => {});
+
         if (activeZone === 'fiesta_winners' && soundEnabled) {
           resumeAudio();
           playHallOfFameSong();
