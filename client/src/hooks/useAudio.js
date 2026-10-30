@@ -438,6 +438,43 @@ export function stopGuestCountdownBeep() {
   countdownBeepAudio = null;
 }
 
+// ── UNSTOPPABLE SONG FOR GUEST WINNER CEREMONY ──
+let guestWinnerSongAudio = null;
+
+export function playGuestWinnerSong() {
+  if (isGlobalMuted) return;
+  try {
+    resumeAudio();
+    safeStopAudio(squidGameAudio);
+    squidGameAudio = null;
+    safeStopAudio(countdownBeepAudio);
+    countdownBeepAudio = null;
+
+    if (!guestWinnerSongAudio) {
+      guestWinnerSongAudio = new Audio('/guest_winner_unstoppable.mp3');
+      guestWinnerSongAudio.preload = 'auto';
+    }
+    guestWinnerSongAudio.currentTime = 0;
+    guestWinnerSongAudio.loop = true;
+    guestWinnerSongAudio.volume = 0.95;
+    activeAudios.add(guestWinnerSongAudio);
+
+    const playPromise = guestWinnerSongAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(err => {
+        console.warn('Guest winner unstoppable song play prevented / deferred:', err);
+      });
+    }
+  } catch (err) {
+    console.warn('Error playing guest winner unstoppable song:', err);
+  }
+}
+
+export function stopGuestWinnerSong() {
+  safeStopAudio(guestWinnerSongAudio);
+  guestWinnerSongAudio = null;
+}
+
 export function preloadGuestSounds() {
   try {
     if (!countdownBeepAudio) {
@@ -447,6 +484,10 @@ export function preloadGuestSounds() {
     if (!winnerExplosionAudio) {
       winnerExplosionAudio = new Audio('/winner_explosion.mp3');
       winnerExplosionAudio.load();
+    }
+    if (!guestWinnerSongAudio) {
+      guestWinnerSongAudio = new Audio('/guest_winner_unstoppable.mp3');
+      guestWinnerSongAudio.load();
     }
   } catch {}
 }
@@ -516,7 +557,8 @@ export function playTripleWinnerExplosion(onEnded) {
         a3.volume = 1.0;
         activeAudios.add(a3);
         a3.onended = () => {
-          stopAllAudio();
+          safeStopAudio(a3);
+          activeAudios.delete(a3);
           if (onEnded) onEnded();
         };
         a3.play().catch(() => {
@@ -527,7 +569,7 @@ export function playTripleWinnerExplosion(onEnded) {
             }
             const fallback3 = new Audio('/winner_explosion.mp3');
             activeAudios.add(fallback3);
-            fallback3.onended = () => { stopAllAudio(); if (onEnded) onEnded(); };
+            fallback3.onended = () => { safeStopAudio(fallback3); activeAudios.delete(fallback3); if (onEnded) onEnded(); };
             fallback3.play().catch(() => { if (onEnded) onEnded(); });
           } catch {
             if (onEnded) onEnded();
@@ -561,7 +603,8 @@ export function playWinnerExplosion(onEnded) {
     activeAudios.add(winnerExplosionAudio);
 
     winnerExplosionAudio.onended = () => {
-      stopAllAudio();
+      safeStopAudio(winnerExplosionAudio);
+      winnerExplosionAudio = null;
       if (onEnded) onEnded();
     };
 
@@ -578,7 +621,8 @@ export function playWinnerExplosion(onEnded) {
           fallback.volume = 1.0;
           activeAudios.add(fallback);
           fallback.onended = () => {
-            stopAllAudio();
+            safeStopAudio(fallback);
+            winnerExplosionAudio = null;
             if (onEnded) onEnded();
           };
           fallback.play().catch(() => {});
@@ -597,6 +641,9 @@ export function playWinnerExplosion(onEnded) {
 export function stopWinnerExplosion() {
   safeStopAudio(winnerExplosionAudio);
   winnerExplosionAudio = null;
+
+  safeStopAudio(guestWinnerSongAudio);
+  guestWinnerSongAudio = null;
 }
 
 export function stopAllAudio() {
@@ -622,6 +669,10 @@ export function stopAllAudio() {
 }
 
 export function stopAllGuestAudio() {
+  stopGuestWinnerSong();
+  stopSquidGameSound();
+  stopGuestCountdownBeep();
+  stopWinnerExplosion();
   stopAllAudio();
 }
 

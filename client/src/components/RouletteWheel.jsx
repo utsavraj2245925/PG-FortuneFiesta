@@ -6,6 +6,8 @@ import {
   playGuestCountdownBeep,
   stopGuestCountdownBeep,
   playTripleWinnerExplosion,
+  playGuestWinnerSong,
+  stopGuestWinnerSong,
   stopAllGuestAudio,
   preloadGuestSounds,
   playRouletteBallClick,
@@ -13,17 +15,20 @@ import {
 } from '../hooks/useAudio';
 import confetti from 'canvas-confetti';
 
-// ── Multi-stage luxury celebration sparkle & fireworks explosion (10 full seconds) ──
-function fireGrandCelebration() {
+// ── CONTINUOUS LUXURY CELEBRATION SPARKLES & FIREWORKS (PLAYS THROUGHOUT WINNER SCREEN) ──
+let continuousSparkleInterval = null;
+
+function startContinuousCelebration() {
+  stopContinuousCelebration();
   const colors = ['#FFD700', '#FFA500', '#FF4500', '#9b5de5', '#f15bb5', '#ffffff', '#00f5d4'];
 
   // 1. Initial grand center burst
   confetti({
-    particleCount: 80,
-    spread: 120,
+    particleCount: 85,
+    spread: 130,
     origin: { x: 0.5, y: 0.4 },
     colors,
-    startVelocity: 45,
+    startVelocity: 48,
     scalar: 1.15,
   });
 
@@ -31,7 +36,7 @@ function fireGrandCelebration() {
   confetti({
     particleCount: 50,
     angle: 60,
-    spread: 75,
+    spread: 80,
     origin: { x: 0.05, y: 0.8 },
     colors,
     startVelocity: 55,
@@ -39,19 +44,19 @@ function fireGrandCelebration() {
   confetti({
     particleCount: 50,
     angle: 120,
-    spread: 75,
+    spread: 80,
     origin: { x: 0.95, y: 0.8 },
     colors,
     startVelocity: 55,
   });
 
-  // 3. Staggered celebratory bursts at 2s, 4s, 6s, 8s
-  [2000, 4000, 6000, 8000].forEach((delay, idx) => {
+  // 3. Staggered celebratory bursts at 1.5s, 3s, 5s
+  [1500, 3000, 5000].forEach((delay, idx) => {
     setTimeout(() => {
       confetti({
         particleCount: 45,
         spread: 100,
-        origin: { x: idx % 2 === 0 ? 0.2 : 0.8, y: 0.35 },
+        origin: { x: idx % 2 === 0 ? 0.25 : 0.75, y: 0.35 },
         colors,
         startVelocity: 42,
         scalar: 1.1,
@@ -59,39 +64,52 @@ function fireGrandCelebration() {
     }, delay);
   });
 
-  // 4. Elegant 10-second perimeter golden sparkle shower (throttled every 250ms for clear visibility)
-  const showerInterval = setInterval(() => {
-    confetti({
-      particleCount: 4,
-      angle: 60,
-      spread: 60,
-      origin: { x: 0.04, y: 0.82 },
-      colors,
-      shapes: ['star', 'circle'],
-      scalar: 1.1,
-    });
-    confetti({
-      particleCount: 4,
-      angle: 120,
-      spread: 60,
-      origin: { x: 0.96, y: 0.82 },
-      colors,
-      shapes: ['star', 'circle'],
-      scalar: 1.1,
-    });
+  // 4. Continuous celebratory sparkles & star shower (UNENDING while on guest winning page)
+  let tick = 0;
+  continuousSparkleInterval = setInterval(() => {
+    tick++;
+    // Side corner mini-cannons alternating
+    if (tick % 4 === 0) {
+      confetti({
+        particleCount: 20,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0.04, y: 0.82 },
+        colors,
+        shapes: ['star', 'circle'],
+        scalar: 1.1,
+      });
+    } else if (tick % 4 === 2) {
+      confetti({
+        particleCount: 20,
+        angle: 120,
+        spread: 55,
+        origin: { x: 0.96, y: 0.82 },
+        colors,
+        shapes: ['star', 'circle'],
+        scalar: 1.1,
+      });
+    }
+
+    // Gentle golden stars raining down across stage
     confetti({
       particleCount: 3,
-      spread: 70,
-      origin: { x: 0.5, y: 0.15 },
-      colors: ['#FFD700', '#FFF8DC', '#FFA500'],
+      spread: 60,
+      origin: { x: 0.25 + (tick % 6) * 0.1, y: 0.15 },
+      colors: ['#FFD700', '#FFF8DC', '#FFA500', '#FFFFFF'],
       shapes: ['star'],
       scalar: 1.2,
+      gravity: 0.85,
+      ticks: 180,
     });
-  }, 260);
+  }, 420);
+}
 
-  setTimeout(() => {
-    clearInterval(showerInterval);
-  }, 10000);
+function stopContinuousCelebration() {
+  if (continuousSparkleInterval) {
+    clearInterval(continuousSparkleInterval);
+    continuousSparkleInterval = null;
+  }
 }
 
 export default function RouletteWheel({
@@ -100,11 +118,11 @@ export default function RouletteWheel({
   winningSerialNo,
   winner,
   prize,
-  duration = 30000,
+  duration = 60000,
   soundEnabled = true,
   onFinished,
 }) {
-  const [secondsLeft, setSecondsLeft] = useState(30);
+  const [secondsLeft, setSecondsLeft] = useState(60);
   const [wheelRotation, setWheelRotation] = useState(0);
   const [ballAngle, setBallAngle] = useState(0);
   const [ballRadius, setBallRadius] = useState(150);
@@ -174,28 +192,30 @@ export default function RouletteWheel({
         setBallAngle(settledBallAngle);
         setBallRadius(pocketRadiusRef.current);
 
-        // If not exploded yet (e.g. state caught on reload), play triple explosion
+        // If not started yet (e.g. state caught on reload), start unstoppable song and continuous sparkles
         if (!hasExplodedRef.current) {
           hasExplodedRef.current = true;
           if (soundEnabled) {
-            playTripleWinnerExplosion(() => stopAllGuestAudio());
+            playGuestWinnerSong();
           }
-          fireGrandCelebration();
+          startContinuousCelebration();
         }
       } else {
         // Idle / Reverted / Reset state: immediately clear previous winner & countdown data
         setIsRevealed(false);
-        setSecondsLeft(30);
+        setSecondsLeft(60);
         setCountdownNum(null);
         setRevealStage(0);
         spinCompletedRef.current = false;
         hasExplodedRef.current = false;
         hasStartedBeepRef.current = false;
+        stopGuestWinnerSong();
+        stopContinuousCelebration();
       }
       return;
     }
 
-    // ── INITIALIZE BRAND NEW SPIN ──
+    // ── INITIALIZE BRAND NEW 60-SECOND SPIN ──
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     spinCompletedRef.current = false;
     setIsRevealed(false);
@@ -205,6 +225,8 @@ export default function RouletteWheel({
     lastTickSecRef.current = null;
     hasStartedBeepRef.current = false;
     hasExplodedRef.current = false;
+    stopGuestWinnerSong();
+    stopContinuousCelebration();
     resumeAudio();
     preloadGuestSounds();
 
@@ -214,8 +236,8 @@ export default function RouletteWheel({
 
     startTimeRef.current = Date.now();
 
-    // Natural wheel rotations (7 full spins + natural angle)
-    const totalWheelSpins = 7 * 360;
+    // Natural wheel rotations (14 full spins + natural angle for winning pocket)
+    const totalWheelSpins = 14 * 360;
     const finalWheelTarget = totalWheelSpins + (winIdx * 43) % 360;
     targetAngleRef.current = finalWheelTarget;
 
@@ -223,9 +245,8 @@ export default function RouletteWheel({
     const pocketCenterAngle = (winIdx + 0.5) * segmentAngle;
     const finalPocketAngle = (finalWheelTarget + pocketCenterAngle) % 360;
 
-    // ── NATURAL CONTINUOUS BALL TRAJECTORY ──
-    // Total ball revolutions in counter-clockwise direction (negative angle)
-    const totalBaseSpins = -19 * 360;
+    // ── NATURAL CONTINUOUS BALL TRAJECTORY (-32 full revolutions) ──
+    const totalBaseSpins = -32 * 360;
     const normTarget = ((finalPocketAngle % 360) + 360) % 360;
     // Exactly lands on finalPocketAngle at progress = 1:
     const targetBallAngle = totalBaseSpins - ((360 - normTarget) % 360);
@@ -238,8 +259,8 @@ export default function RouletteWheel({
       const remainingSec = Math.max(0, Math.ceil((duration - elapsed) / 1000));
       setSecondsLeft(remainingSec);
 
-      // Deceleration curve for the wheel
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      // Deceleration curve for the wheel: naturally slow down from fast to very slow
+      const easeProgress = 1 - Math.pow(1 - progress, 2.8);
       const currentWheelAngle = easeProgress * finalWheelTarget;
       setWheelRotation(currentWheelAngle);
 
@@ -248,46 +269,45 @@ export default function RouletteWheel({
       const outerR = curCenterR * 0.93;
 
       // ── NATURAL CONTINUOUS BALL MOTION (Strictly Monotonic Deceleration) ──
-      // The ball moves fast initially, gradually decreases speed continuously,
+      // The ball moves fast initially, gradually decreases speed continuously according to time,
       // never turns back, rolls smoothly down into the pocket ring, and comes to a gentle stop.
-      // Cubic-exponential friction deceleration curve:
       const easeBall = 1 - Math.pow(1 - progress, 3.25);
       const baseBallAngle = easeBall * targetBallAngle;
 
-      // Ball Radius Physics:
-      // 0 - 18s (progress < 0.60): held securely on outer rim by centrifugal force
-      // 18s - 26s (0.60 <= progress < 0.88): smoothly spirals down from outer rim into pocket ring
-      // 26s - 30s (progress >= 0.88): rolls smoothly along pocket ring into winning pocket
+      // Ball Radius Physics over 60 seconds:
+      // 0 - 42s (progress < 0.70): held securely on outer rim by centrifugal force
+      // 42s - 52s (0.70 <= progress < 0.87): smoothly spirals down from outer rim into pocket ring
+      // 52s - 60s (progress >= 0.87): rolls smoothly along pocket ring into winning pocket
       let currentR = outerR;
-      if (progress >= 0.60 && progress < 0.88) {
-        const dropRatio = (progress - 0.60) / 0.28; // 0 to 1
+      if (progress >= 0.70 && progress < 0.87) {
+        const dropRatio = (progress - 0.70) / 0.17; // 0 to 1
         // Smooth Hermite S-curve for inward spiral
         const smoothDrop = dropRatio * dropRatio * (3 - 2 * dropRatio);
         currentR = outerR - smoothDrop * (outerR - curPocketR);
-      } else if (progress >= 0.88) {
+      } else if (progress >= 0.87) {
         currentR = curPocketR;
       }
       setBallRadius(currentR);
 
-      // Subtle realistic fret settle in final 2.5 seconds (micro-dampened bounce < 1.2 deg)
+      // Subtle realistic fret settle in final 1.5 seconds (micro-dampened forward bounce < 0.6 deg)
       let bounceOffset = 0;
-      if (progress >= 0.91 && progress < 1.0) {
-        const settleRatio = (progress - 0.91) / 0.09; // 0 to 1
+      if (progress >= 0.975 && progress < 1.0) {
+        const settleRatio = (progress - 0.975) / 0.025; // 0 to 1
         const damp = Math.pow(1 - settleRatio, 2);
-        bounceOffset = Math.sin(settleRatio * Math.PI * 4) * 1.2 * damp;
+        bounceOffset = Math.sin(settleRatio * Math.PI * 3) * 0.6 * damp;
       }
 
       const calculatedAngle = ((baseBallAngle + bounceOffset) % 360 + 360) % 360;
       setBallAngle(calculatedAngle);
 
-      // Ball clatter sound only in first 19 seconds, silenced when countdown clock begins
-      if (soundEnabled && progress < 0.64 && elapsed - lastClickTime > (progress < 0.4 ? 140 : 320)) {
+      // Ball clatter sound only in first 45 seconds, silenced before countdown begins
+      if (soundEnabled && progress < 0.75 && elapsed - lastClickTime > (progress < 0.35 ? 130 : (progress < 0.55 ? 240 : 420))) {
         playRouletteBallClick();
         lastClickTime = elapsed;
       }
 
       // ── LAST 10 SECONDS COUNTDOWN: 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 ──
-      // Cut off squid game music and switch exclusively to counting beep sound
+      // Cut off squid game music and switch exclusively to clock sound
       if (remainingSec <= 10 && remainingSec > 0) {
         if (!hasStartedBeepRef.current) {
           hasStartedBeepRef.current = true;
@@ -302,7 +322,7 @@ export default function RouletteWheel({
         }
       }
 
-      // ── EXACTLY AT COUNTDOWN 0: STOP ALL MUSIC, PLAY 3 EXPLOSIONS, REVEAL WINNER SUSPENSEFULLY ──
+      // ── EXACTLY AT COUNTDOWN 0: STOP CLOCK, PLAY 3 EXPLOSIONS, START UNSTOPPABLE SONG & CONTINUOUS SPARKLES ──
       if (remainingSec === 0 || progress >= 1) {
         stopSquidGameSound();
         stopGuestCountdownBeep();
@@ -323,13 +343,19 @@ export default function RouletteWheel({
         if (!hasExplodedRef.current) {
           hasExplodedRef.current = true;
 
-          // Play explosion sound 3 times continuously as requested!
+          // Play explosion sound 3 times continuously!
           if (soundEnabled) {
-            playTripleWinnerExplosion(() => stopAllGuestAudio());
+            playTripleWinnerExplosion();
+            // Start unstoppable song right as the winner card reveals!
+            setTimeout(() => {
+              if (soundEnabled) {
+                playGuestWinnerSong();
+              }
+            }, 1200);
           }
 
-          // Trigger 10 seconds of high-density celebration sparkles!
-          fireGrandCelebration();
+          // Trigger continuous luxury celebration sparkles!
+          startContinuousCelebration();
 
           if (onFinished) onFinished();
         }
@@ -345,7 +371,8 @@ export default function RouletteWheel({
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       stopSquidGameSound();
       stopGuestCountdownBeep();
-      stopAllGuestAudio();
+      stopGuestWinnerSong();
+      stopContinuousCelebration();
     };
   }, [spinning, duration, winIdx, segmentAngle, soundEnabled, onFinished]);
 
@@ -354,6 +381,8 @@ export default function RouletteWheel({
     return () => {
       stopSquidGameSound();
       stopGuestCountdownBeep();
+      stopGuestWinnerSong();
+      stopContinuousCelebration();
       stopAllGuestAudio();
     };
   }, []);

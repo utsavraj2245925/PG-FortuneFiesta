@@ -17,6 +17,8 @@ import {
   stopFiestaCelebrationAudio,
   stopSquidGameSound,
   playWinnerExplosion,
+  playGuestWinnerSong,
+  stopGuestWinnerSong,
   stopAllAudio,
   playClockTick,
   setAudioMuted,
@@ -1599,6 +1601,9 @@ export default function LiveDraw() {
         if (activeZone === 'fiesta_winners' && soundEnabled) {
           resumeAudio();
           playHallOfFameSong();
+        } else if (activeZone === 'guest' && guestWinner && soundEnabled) {
+          resumeAudio();
+          playGuestWinnerSong();
         }
       }
     };
@@ -2371,7 +2376,7 @@ export default function LiveDraw() {
                         </div>
                       </div>
                       <div style={{ fontSize: 11.5, color: '#444', fontWeight: 600, lineHeight: 1.35, marginTop: 4 }}>
-                        Live 30s Casino Roulette • Dedicated Lucky Draw for Honored VIP Guests
+                        Live 60s Casino Roulette • Dedicated Lucky Draw for Honored VIP Guests
                       </div>
                     </div>
 
@@ -2583,7 +2588,7 @@ export default function LiveDraw() {
               winningSerialNo={guestSpinData?.winningSerialNo || guestWinner?.serialNo}
               winner={guestWinner}
               prize={guestPrize}
-              duration={guestSpinData?.duration || 30000}
+              duration={guestSpinData?.duration || 60000}
               soundEnabled={soundEnabled}
               onFinished={() => setGuestSpinning(false)}
             />

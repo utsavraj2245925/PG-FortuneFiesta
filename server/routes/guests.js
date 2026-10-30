@@ -8,7 +8,7 @@ const GameState = require('../models/GameState');
 const Prize = require('../models/Prize');
 const auth = require('../middleware/auth');
 
-const SPIN_DURATION = 30000; // 30 seconds
+const SPIN_DURATION = 60000; // 60 seconds
 let spinning = false;
 let spinTimer = null;
 
@@ -374,7 +374,7 @@ module.exports = (io) => {
     }
   });
 
-  // POST /api/guests/spin — start 30s roulette wheel spin
+  // POST /api/guests/spin — start 60s roulette wheel spin
   router.post('/spin', auth, async (req, res) => {
     try {
       if (spinning) return res.status(409).json({ message: 'Roulette wheel is already spinning' });
@@ -415,7 +415,7 @@ module.exports = (io) => {
         { upsert: true }
       );
 
-      // Broadcast spin start with 30s duration
+      // Broadcast spin start with 60s duration
       if (io) {
         io.emit('guest:spin_start', {
           duration: SPIN_DURATION,
@@ -433,12 +433,12 @@ module.exports = (io) => {
 
       res.json({
         ok: true,
-        message: 'Guest roulette spin started (30 seconds)',
+        message: 'Guest roulette spin started (60 seconds)',
         duration: SPIN_DURATION,
         winningSerialNo: winner.serialNo,
       });
 
-      // 30 seconds timer for the roulette reveal
+      // 60 seconds timer for the roulette reveal
       spinTimer = setTimeout(async () => {
         spinTimer = null;
         try {

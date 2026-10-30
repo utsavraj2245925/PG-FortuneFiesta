@@ -2131,12 +2131,12 @@ export default function AdminPanel() {
     if (guestSpinTimerRef.current) clearTimeout(guestSpinTimerRef.current);
     try {
       await axios.post('/api/guests/spin', {}, auth());
-      message.success('VIP Guest Roulette spinning for 30s on Live screen!');
+      message.success('VIP Guest Roulette spinning for 60s on Live screen!');
       guestSpinTimerRef.current = setTimeout(() => {
         guestSpinTimerRef.current = null;
         setGuestSpinning(false);
         loadGuestState();
-      }, 30500);
+      }, 60500);
     } catch (e) {
       message.error(e.response?.data?.message || 'Guest spin failed');
       setGuestSpinning(false);
@@ -2852,7 +2852,7 @@ export default function AdminPanel() {
                     <span style={{ fontWeight: 800, color: '#4A154B', fontSize: isMobile ? 14 : 16 }}>VIP Guest Playing Zone (Roulette)</span>
                     <Badge
                       status={guestSpinning || guestState?.status === 'spinning' ? 'processing' : guestState?.winner ? 'success' : 'default'}
-                      text={guestSpinning || guestState?.status === 'spinning' ? 'Spinning (30s)...' : guestState?.winner ? 'Winner Drawn' : 'Ready'}
+                      text={guestSpinning || guestState?.status === 'spinning' ? 'Spinning (60s)...' : guestState?.winner ? 'Winner Drawn' : 'Ready'}
                     />
                   </Space>
                 }
@@ -2873,7 +2873,7 @@ export default function AdminPanel() {
                       )}
                     </div>
                     <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                      Single round casino roulette wheel with 30s countdown & celebration on Live Screen.
+                      Single round casino roulette wheel with 60s countdown & celebration on Live Screen.
                     </div>
                   </Col>
                   <Col xs={24} sm={11} style={{ textAlign: isMobile ? 'left' : 'right', marginTop: isMobile ? 8 : 0 }}>
@@ -2894,7 +2894,7 @@ export default function AdminPanel() {
                           width: isMobile ? '100%' : 'auto',
                         }}
                       >
-                        SPIN Guest Roulette (30s)
+                        SPIN Guest Roulette (60s)
                       </Button>
                       <Button
                         size="large"
