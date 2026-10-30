@@ -553,7 +553,7 @@ export default function RouletteWheel({
             }}
           >
             <img
-              src="/pg-round-logo.png"
+              src="/pg-round-logo.png?v=2"
               alt="PG Logo"
               style={{
                 width: '88%',
