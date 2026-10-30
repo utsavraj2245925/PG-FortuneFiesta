@@ -1741,25 +1741,86 @@ export default function LiveDraw() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Authentic Live Broadcast Blinker Badge */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 7,
+              background: activeZone === 'guest' || activeZone === 'fiesta_winners' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.08)',
+              border: '1.5px solid #ef4444',
+              color: '#dc2626',
+              padding: '4px 12px',
+              borderRadius: 20,
+              fontSize: 11.5,
+              fontWeight: 900,
+              letterSpacing: 1.2,
+              boxShadow: '0 0 12px rgba(239, 68, 68, 0.3)',
+            }}
+          >
+            <motion.span
+              animate={{ opacity: [1, 0.2, 1], scale: [1, 1.35, 1] }}
+              transition={{ duration: 1.0, repeat: Infinity, ease: 'easeInOut' }}
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: '#ef4444',
+                boxShadow: '0 0 8px #ef4444, 0 0 14px rgba(239, 68, 68, 0.8)',
+                display: 'inline-block',
+              }}
+            />
+            <span style={{ color: activeZone === 'guest' || activeZone === 'fiesta_winners' ? '#ff6b6b' : '#dc2626' }}>
+              LIVE
+            </span>
+          </div>
+
+          {/* Sound Pill with Active Live Audio Blinker */}
           <button
             onClick={toggleSound}
             style={{
-              background: soundEnabled ? (activeZone === 'guest' || activeZone === 'fiesta_winners' ? '#3b1257' : '#f6ffed') : '#fff1f0',
+              background: soundEnabled
+                ? (activeZone === 'guest' || activeZone === 'fiesta_winners' ? 'rgba(82, 196, 26, 0.18)' : '#f6ffed')
+                : '#fff1f0',
               border: `1.5px solid ${soundEnabled ? '#52c41a' : '#ff4d4f'}`,
               color: soundEnabled ? '#52c41a' : '#cf1322',
               borderRadius: 20,
-              padding: '5px 12px',
+              padding: '5px 14px',
               fontSize: 12,
-              fontWeight: 700,
+              fontWeight: 800,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
+              gap: 7,
+              boxShadow: soundEnabled ? '0 0 12px rgba(82, 196, 26, 0.3)' : 'none',
+              transition: 'all 0.3s ease',
             }}
           >
-            {soundEnabled ? '🔊 Sound: ON' : '🔈 Sound: MUTED'}
+            {soundEnabled ? (
+              <>
+                <motion.span
+                  animate={{ scale: [1, 1.35, 1], opacity: [1, 0.4, 1] }}
+                  transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: '#52c41a',
+                    boxShadow: '0 0 8px #52c41a',
+                    display: 'inline-block',
+                  }}
+                />
+                <span>🔊 Sound: ON</span>
+              </>
+            ) : (
+              <>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ff4d4f', display: 'inline-block' }} />
+                <span>🔈 Sound: MUTED</span>
+              </>
+            )}
           </button>
+
           <div style={{ display: 'flex', gap: 6 }}>
             <span style={diyaStyle}>🪔</span>
             <span style={{ ...diyaStyle, animationDelay: '0.3s' }}>🪔</span>
@@ -2203,7 +2264,7 @@ export default function LiveDraw() {
                       marginBottom: 20,
                     }}
                   >
-                    ✨ Grand Diwali Lucky Draw & Honored VIP Guest Car Ceremony ✨
+                    ✨ Grand Annual Diwali Lucky Draw for Our Respected Employees & Honored Guests ✨
                   </div>
 
                   {/* 3 Executive Feature Cards */}
@@ -2292,12 +2353,12 @@ export default function LiveDraw() {
                             VIP GUEST ROULETTE
                           </div>
                           <div style={{ fontSize: 10, fontWeight: 700, color: '#777' }}>
-                            Grand Finale
+                            Special Honored Round
                           </div>
                         </div>
                       </div>
                       <div style={{ fontSize: 11.5, color: '#444', fontWeight: 600, lineHeight: 1.35, marginTop: 4 }}>
-                        Live 30s Casino Roulette • 1 Honored VIP Guest Car Winner
+                        Live 30s Casino Roulette • Dedicated Lucky Draw for Honored VIP Guests
                       </div>
                     </div>
 
@@ -2339,7 +2400,7 @@ export default function LiveDraw() {
                         </div>
                       </div>
                       <div style={{ fontSize: 11.5, color: '#444', fontWeight: 600, lineHeight: 1.35, marginTop: 4 }}>
-                        Real-Time Random Draw • Live Audience Stage Presentation
+                        Real-Time Random Draw • Live Audience See Your Own Luck...
                       </div>
                     </div>
                   </div>
@@ -2376,7 +2437,7 @@ export default function LiveDraw() {
                     </motion.div>
 
                     <div style={{ fontSize: 12.5, color: '#777', fontWeight: 600, letterSpacing: 0.5 }}>
-                      Admin will initiate Round 1A shortly • Wishing Everyone A Prosperous Diwali 2026! 🪔
+                      Admin Will Begin The Fortune Fiesta Lucky Draw Shortly.
                     </div>
                   </div>
                 </motion.div>
