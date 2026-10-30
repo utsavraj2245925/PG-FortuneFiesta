@@ -24,7 +24,7 @@ import {
   isEmpSongPending,
 } from '../hooks/useAudio';
 import confetti from 'canvas-confetti';
-import { Trophy, Crown, Gift, Sparkles, Award, Car, Clock, Star, Flame } from 'lucide-react';
+import { Trophy, Crown, Gift, Sparkles, Award, Car, Clock, Star, Flame, Volume2, VolumeX } from 'lucide-react';
 import RouletteWheel from '../components/RouletteWheel';
 
 const LOGO_PG = 'https://cms-complaint-avidence.s3.eu-north-1.amazonaws.com/pg-logo-Photoroom.png';
@@ -1742,82 +1742,95 @@ export default function LiveDraw() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* Authentic Live Broadcast Blinker Badge */}
+          {/* Realistic Green Broadcast LIVE Status Badge */}
           <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 7,
-              background: activeZone === 'guest' || activeZone === 'fiesta_winners' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.08)',
-              border: '1.5px solid #ef4444',
-              color: '#dc2626',
-              padding: '4px 12px',
-              borderRadius: 20,
+              background: activeZone === 'guest' || activeZone === 'fiesta_winners'
+                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.12) 100%)'
+                : 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)',
+              border: activeZone === 'guest' || activeZone === 'fiesta_winners'
+                ? '1.5px solid rgba(52, 211, 153, 0.7)'
+                : '1.5px solid #10b981',
+              color: activeZone === 'guest' || activeZone === 'fiesta_winners' ? '#34d399' : '#047857',
+              padding: '4px 13px',
+              borderRadius: 22,
               fontSize: 11.5,
-              fontWeight: 900,
-              letterSpacing: 1.2,
-              boxShadow: '0 0 12px rgba(239, 68, 68, 0.3)',
+              fontWeight: 950,
+              letterSpacing: 1.5,
+              boxShadow: '0 0 14px rgba(16, 185, 129, 0.35)',
             }}
           >
-            <motion.span
-              animate={{ opacity: [1, 0.2, 1], scale: [1, 1.35, 1] }}
-              transition={{ duration: 1.0, repeat: Infinity, ease: 'easeInOut' }}
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: '#ef4444',
-                boxShadow: '0 0 8px #ef4444, 0 0 14px rgba(239, 68, 68, 0.8)',
-                display: 'inline-block',
-              }}
-            />
-            <span style={{ color: activeZone === 'guest' || activeZone === 'fiesta_winners' ? '#ff6b6b' : '#dc2626' }}>
-              LIVE
-            </span>
+            {/* Realistic Radar Pulse Blinker with concentric glow ring */}
+            <div style={{ position: 'relative', width: 9, height: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <motion.span
+                animate={{ scale: [1, 2.3, 1], opacity: [0.8, 0, 0.8] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
+                style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  background: '#10b981',
+                  pointerEvents: 'none',
+                }}
+              />
+              <motion.span
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                style={{
+                  position: 'relative',
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: '#10b981',
+                  boxShadow: '0 0 10px #10b981, 0 0 16px rgba(16, 185, 129, 0.9)',
+                  display: 'block',
+                }}
+              />
+            </div>
+            <span>LIVE</span>
           </div>
 
-          {/* Sound Pill with Active Live Audio Blinker */}
+          {/* Sound Control Icon Button (No Text Badge) */}
           <button
             onClick={toggleSound}
+            title={soundEnabled ? 'Click to Mute Sound' : 'Click to Enable Sound'}
+            aria-label={soundEnabled ? 'Mute Sound' : 'Enable Sound'}
             style={{
+              width: 38,
+              height: 38,
+              borderRadius: '50%',
               background: soundEnabled
-                ? (activeZone === 'guest' || activeZone === 'fiesta_winners' ? 'rgba(82, 196, 26, 0.18)' : '#f6ffed')
-                : '#fff1f0',
-              border: `1.5px solid ${soundEnabled ? '#52c41a' : '#ff4d4f'}`,
-              color: soundEnabled ? '#52c41a' : '#cf1322',
-              borderRadius: 20,
-              padding: '5px 14px',
-              fontSize: 12,
-              fontWeight: 800,
+                ? (activeZone === 'guest' || activeZone === 'fiesta_winners'
+                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.15) 100%)'
+                  : 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)')
+                : (activeZone === 'guest' || activeZone === 'fiesta_winners'
+                  ? 'rgba(239, 68, 68, 0.15)'
+                  : '#fff1f0'),
+              border: soundEnabled
+                ? '1.8px solid #10b981'
+                : '1.8px solid #ef4444',
+              color: soundEnabled
+                ? (activeZone === 'guest' || activeZone === 'fiesta_winners' ? '#34d399' : '#059669')
+                : '#dc2626',
+              boxShadow: soundEnabled
+                ? '0 0 14px rgba(16, 185, 129, 0.35)'
+                : '0 0 10px rgba(239, 68, 68, 0.2)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 7,
-              boxShadow: soundEnabled ? '0 0 12px rgba(82, 196, 26, 0.3)' : 'none',
-              transition: 'all 0.3s ease',
+              justifyContent: 'center',
+              padding: 0,
+              transition: 'all 0.25s ease',
             }}
           >
             {soundEnabled ? (
-              <>
-                <motion.span
-                  animate={{ scale: [1, 1.35, 1], opacity: [1, 0.4, 1] }}
-                  transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    background: '#52c41a',
-                    boxShadow: '0 0 8px #52c41a',
-                    display: 'inline-block',
-                  }}
-                />
-                <span>🔊 Sound: ON</span>
-              </>
+              <Volume2 size={20} style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))' }} />
             ) : (
-              <>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ff4d4f', display: 'inline-block' }} />
-                <span>🔈 Sound: MUTED</span>
-              </>
+              <VolumeX size={20} style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))' }} />
             )}
           </button>
 
