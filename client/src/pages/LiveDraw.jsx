@@ -1399,6 +1399,13 @@ export default function LiveDraw() {
       fetch('/api/guests/state')
         .then(r => r.json())
         .then(st => {
+          if (guestSpinningRef.current && Date.now() - guestSpinStartTimeRef.current < 60000) {
+            if (st?.winner) {
+              pendingGuestWinnerRef.current = st.winner;
+              pendingGuestPrizeRef.current = st.prize;
+            }
+            return;
+          }
           if (st?.winner) {
             setGuestWinner(st.winner);
             setGuestPrize(st.prize);

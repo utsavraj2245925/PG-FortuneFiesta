@@ -168,7 +168,7 @@ export default function RouletteWheel({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const isWinnerRevealed = Boolean(isRevealed || winner);
+  const isWinnerRevealed = !isSpinActiveRef.current && !spinning && Boolean(isRevealed || winner);
   // Guarantee wheel fits on screen: navbar (~60px) + tabs (~45px) + header (~65px) + footer (~35px) = ~205px
   const maxWheelAvail = Math.max(260, Math.min(440, windowHeight - 215));
   const wheelSize = isWinnerRevealed ? Math.min(370, maxWheelAvail) : maxWheelAvail;
@@ -188,11 +188,19 @@ export default function RouletteWheel({
   soundEnabledRef.current = soundEnabled;
 
   const isSpinActiveRef = useRef(false);
+  const spinStartTimeRef = useRef(0);
   const winIdxRef = useRef(winIdx);
   winIdxRef.current = winIdx;
 
   useEffect(() => {
     if (!spinning) {
+      const elapsed = Date.now() - spinStartTimeRef.current;
+      // If a 60s spin is currently ongoing and less than 59s have passed,
+      // DO NOT cancel, DO NOT reset, DO NOT interrupt! Let the continuous 60s physics run!
+      if (isSpinActiveRef.current && elapsed < 59000) {
+        return;
+      }
+
       isSpinActiveRef.current = false;
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       stopSquidGameSound();
@@ -206,8 +214,9 @@ export default function RouletteWheel({
         spinCompletedRef.current = true;
 
         // Position ball inside the winning pocket
-        const pocketCenterAngle = (winIdx + 0.5) * segmentAngle;
-        const currentTarget = targetAngleRef.current || (winIdx * 43) % 360;
+        const currentWinIdx = winIdxRef.current;
+        const pocketCenterAngle = (currentWinIdx + 0.5) * segmentAngle;
+        const currentTarget = targetAngleRef.current || (currentWinIdx * 43) % 360;
         const settledBallAngle = (currentTarget + pocketCenterAngle) % 360;
         setBallAngle(settledBallAngle);
         setBallRadius(pocketRadiusRef.current);
@@ -241,6 +250,7 @@ export default function RouletteWheel({
     }
 
     isSpinActiveRef.current = true;
+    spinStartTimeRef.current = Date.now();
 
     // ── INITIALIZE BRAND NEW 60-SECOND SPIN ──
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
@@ -261,9 +271,9 @@ export default function RouletteWheel({
       playSquidGameSound();
     }
 
-    startTimeRef.current = Date.now();
-
     const currentWinIdx = winIdx;
+    winIdxRef.current = currentWinIdx;
+
     // Natural wheel rotations (14 full spins + natural angle for winning pocket)
     const totalWheelSpins = 14 * 360;
     const finalWheelTarget = totalWheelSpins + (currentWinIdx * 43) % 360;
@@ -282,7 +292,7 @@ export default function RouletteWheel({
     let lastClickTime = 0;
 
     const animate = () => {
-      const elapsed = Date.now() - startTimeRef.current;
+      const elapsed = Date.now() - spinStartTimeRef.current;
       const progress = Math.min(1, elapsed / 60000);
       const remainingSec = Math.max(0, Math.ceil((60000 - elapsed) / 1000));
       setSecondsLeft(remainingSec);
@@ -397,6 +407,10 @@ export default function RouletteWheel({
     animFrameRef.current = requestAnimationFrame(animate);
 
     return () => {
+      const elapsed = Date.now() - spinStartTimeRef.current;
+      if (isSpinActiveRef.current && elapsed < 59000) {
+        return;
+      }
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       stopSquidGameSound();
       stopGuestCountdownBeep();

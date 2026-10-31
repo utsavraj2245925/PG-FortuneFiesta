@@ -2846,12 +2846,18 @@ export default function AdminPanel() {
                             whiteSpace: 'nowrap',
                             minWidth: isMobile ? '100%' : 140,
                             height: 46,
-                            fontWeight: 700,
+                            fontWeight: 900,
+                            color: '#FFFFFF',
+                            opacity: 1,
+                            pointerEvents: (spinning || status === 'spinning') ? 'none' : 'auto',
+                            boxShadow: (spinning || status === 'spinning') ? '0 0 14px rgba(220,38,38,0.5)' : undefined,
                           }}
                         >
-                          {spinning || status === 'spinning'
-                            ? `Spinning (${String(empSecondsLeft || 20).padStart(2, '0')}s)...`
-                            : '🔄 Spin Again'}
+                          <span style={{ color: '#FFFFFF', fontWeight: 900, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}>
+                            {spinning || status === 'spinning'
+                              ? `Spinning (${String(empSecondsLeft || 20).padStart(2, '0')}s)...`
+                              : '🔄 Spin Again'}
+                          </span>
                         </Button>
                       </div>
                     )}
@@ -2864,22 +2870,27 @@ export default function AdminPanel() {
                         icon={spinning || status === 'spinning' ? undefined : <PlayCircleOutlined />}
                         loading={spinning || status === 'spinning'}
                         onClick={spin}
-                        disabled={spinning || status === 'spinning' || currentRound > 9}
+                        disabled={currentRound > 9}
                         style={{
-                          backgroundColor: spinning || status === 'spinning' ? '#991B1B' : '#C8102E',
-                          borderColor: '#C8102E',
+                          backgroundColor: (spinning || status === 'spinning') ? '#B91C1C' : '#C8102E',
+                          borderColor: (spinning || status === 'spinning') ? '#991B1B' : '#C8102E',
+                          color: '#FFFFFF',
+                          opacity: 1,
                           height: 50,
                           paddingInline: isMobile ? 16 : 28,
                           fontSize: 16,
-                          fontWeight: 800,
+                          fontWeight: 900,
                           flex: isMobile ? '1 1 auto' : undefined,
-                          boxShadow: '0 4px 14px rgba(200,16,46,0.3)',
+                          boxShadow: (spinning || status === 'spinning') ? '0 0 16px rgba(220,38,38,0.6)' : '0 4px 14px rgba(200,16,46,0.3)',
+                          pointerEvents: (spinning || status === 'spinning') ? 'none' : 'auto',
                           transition: 'all 0.3s ease',
                         }}
                       >
-                        {spinning || status === 'spinning'
-                          ? `Spinning Round ${currentRound} (${String(empSecondsLeft || 20).padStart(2, '0')}s)...`
-                          : `🎰 SPIN Round ${currentRound}`}
+                        <span style={{ color: '#FFFFFF', fontWeight: 900, textShadow: '0 1px 4px rgba(0,0,0,0.9)', letterSpacing: 0.5 }}>
+                          {spinning || status === 'spinning'
+                            ? `Spinning Round ${currentRound} (${String(empSecondsLeft || 20).padStart(2, '0')}s)...`
+                            : `🎰 SPIN Round ${currentRound}`}
+                        </span>
                       </Button>
                       <Button
                         size="large"
@@ -2936,11 +2947,13 @@ export default function AdminPanel() {
                     <Badge
                       status={guestSpinning || guestState?.status === 'spinning' ? 'processing' : guestState?.winner ? 'success' : 'default'}
                       text={
-                        guestSpinning || guestState?.status === 'spinning'
-                          ? `Spinning (${String(guestSecondsLeft || 60).padStart(2, '0')}s)...`
-                          : guestState?.winner
-                            ? 'Winner Drawn'
-                            : 'Ready'
+                        <span style={{ fontWeight: 800, color: (guestSpinning || guestState?.status === 'spinning') ? '#7B1FA2' : (guestState?.winner ? '#52c41a' : '#64748b') }}>
+                          {guestSpinning || guestState?.status === 'spinning'
+                            ? `Spinning (${String(guestSecondsLeft || 60).padStart(2, '0')}s)...`
+                            : guestState?.winner
+                              ? 'Winner Drawn'
+                              : 'Ready'}
+                        </span>
                       }
                     />
                   </Space>
@@ -2972,21 +2985,27 @@ export default function AdminPanel() {
                         size="large"
                         loading={guestSpinning || guestState?.status === 'spinning'}
                         onClick={spinGuest}
-                        disabled={(guestState?.eligibleCount || 0) === 0 || guestSpinning || guestState?.status === 'spinning'}
+                        disabled={(guestState?.eligibleCount || 0) === 0}
                         icon={<Sparkles size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
                         style={{
-                          background: guestSpinning || guestState?.status === 'spinning' ? '#4A154B' : '#7B1FA2',
-                          borderColor: '#7B1FA2',
-                          fontWeight: 800,
+                          background: (guestSpinning || guestState?.status === 'spinning') ? '#581C87' : '#7B1FA2',
+                          borderColor: (guestSpinning || guestState?.status === 'spinning') ? '#3B0764' : '#7B1FA2',
+                          color: '#FFFFFF',
+                          opacity: 1,
+                          fontWeight: 900,
                           height: 48,
                           paddingInline: 20,
                           width: isMobile ? '100%' : 'auto',
+                          pointerEvents: (guestSpinning || guestState?.status === 'spinning') ? 'none' : 'auto',
+                          boxShadow: (guestSpinning || guestState?.status === 'spinning') ? '0 0 16px rgba(123,31,162,0.6)' : undefined,
                           transition: 'all 0.3s ease',
                         }}
                       >
-                        {guestSpinning || guestState?.status === 'spinning'
-                          ? `Spinning (${String(guestSecondsLeft || 60).padStart(2, '0')}s)...`
-                          : 'SPIN Guest Roulette (60s)'}
+                        <span style={{ color: '#FFFFFF', fontWeight: 900, textShadow: '0 1px 4px rgba(0,0,0,0.9)', letterSpacing: 0.5 }}>
+                          {guestSpinning || guestState?.status === 'spinning'
+                            ? `Spinning (${String(guestSecondsLeft || 60).padStart(2, '0')}s)...`
+                            : 'SPIN Guest Roulette (60s)'}
+                        </span>
                       </Button>
                       <Button
                         size="large"
