@@ -1040,11 +1040,11 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
         </motion.h1>
 
         <div style={{ fontSize: 'clamp(10px, 1.3vh, 12px)', color: '#fbcfe8', fontWeight: 700, letterSpacing: 0.8, marginTop: 1 }}>
-          ✨ Heartiest Congratulations to our Honored VIP Guest Winner & Employee Champions! ✨
+          ✨ Heartiest Congratulations to our Honored Guest Winner & Employee Champions! ✨
         </div>
       </div>
 
-      {/* ── 1. VIP GUEST WINNER SECTION (FIRST, HERO SHOWCASE) ── */}
+      {/* ── 1. GUEST WINNER SECTION (FIRST, HERO SHOWCASE) ── */}
       <div style={{ width: '100%', maxWidth: 1160, marginBottom: 'clamp(4px, 0.8vh, 8px)', position: 'relative', zIndex: 2, flexShrink: 0 }}>
         <motion.div
           initial={{ opacity: 0, y: 15 }}
@@ -1115,7 +1115,7 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
                         boxShadow: '0 2px 8px rgba(255, 215, 0, 0.4)',
                       }}
                     >
-                      👑 HONORED VIP GUEST WINNER
+                      👑 HONORED GUEST WINNER
                     </span>
                     <span
                       style={{
@@ -1182,8 +1182,8 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
                   <Award size={13} style={{ color: '#FFD700' }} /> WON GRAND PRIZE
                 </div>
                 <div style={{ color: '#ffffff', fontSize: 'clamp(14px, 1.8vh, 17px)', fontWeight: 950, marginTop: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Car size={16} style={{ color: '#FFD700' }} />
-                  <span>{guestPrize?.name || 'CAR (GRAND PRIZE)'}</span>
+                  <Trophy size={16} style={{ color: '#FFD700' }} />
+                  <span>{guestPrize?.name || 'GRAND PRIZE'}</span>
                 </div>
                 {guestPrize?.description && (
                   <div style={{ color: '#fef08a', fontSize: 'clamp(9.5px, 1.1vh, 11px)', marginTop: 1, fontWeight: 600 }}>
@@ -1196,7 +1196,7 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', justifyContent: 'center', padding: '6px 0' }}>
               <Crown size={22} style={{ color: '#FFD700' }} />
               <div style={{ color: '#FFD700', fontSize: 'clamp(12px, 1.6vh, 15px)', fontWeight: 800 }}>
-                VIP Guest Lucky Winner will be drawn live in the Casino Roulette Zone!
+                Honored Guest Lucky Winner will be drawn live in the Casino Roulette Zone!
               </div>
             </div>
           )}
