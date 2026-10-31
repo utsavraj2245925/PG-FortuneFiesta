@@ -1585,11 +1585,6 @@ export default function LiveDraw() {
       if (guestSpinningRef.current && elapsed < 59000) {
         pendingGuestWinnerRef.current = data.winner;
         pendingGuestPrizeRef.current = data.prize;
-        setGuestSpinData(prev => ({
-          ...(prev || {}),
-          winningSerialNo: data.winner?.serialNo || prev?.winningSerialNo,
-          duration: 60000,
-        }));
         return;
       }
       guestSpinningRef.current = false;
@@ -1628,11 +1623,6 @@ export default function LiveDraw() {
           if (st.winner) {
             pendingGuestWinnerRef.current = st.winner;
             pendingGuestPrizeRef.current = st.prize;
-            setGuestSpinData(prev => ({
-              ...(prev || {}),
-              winningSerialNo: st.winner?.serialNo || prev?.winningSerialNo,
-              duration: 60000,
-            }));
           }
           return;
         }

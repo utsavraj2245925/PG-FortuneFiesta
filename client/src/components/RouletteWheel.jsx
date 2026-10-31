@@ -181,8 +181,19 @@ export default function RouletteWheel({
   centerRRef.current = centerR;
   pocketRadiusRef.current = pocketRadius;
 
+  const onFinishedRef = useRef(onFinished);
+  onFinishedRef.current = onFinished;
+
+  const soundEnabledRef = useRef(soundEnabled);
+  soundEnabledRef.current = soundEnabled;
+
+  const isSpinActiveRef = useRef(false);
+  const winIdxRef = useRef(winIdx);
+  winIdxRef.current = winIdx;
+
   useEffect(() => {
     if (!spinning) {
+      isSpinActiveRef.current = false;
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       stopSquidGameSound();
       stopGuestCountdownBeep();
@@ -204,7 +215,7 @@ export default function RouletteWheel({
         // If not started yet (e.g. state caught on reload), start unstoppable song and continuous sparkles
         if (!hasExplodedRef.current) {
           hasExplodedRef.current = true;
-          if (soundEnabled) {
+          if (soundEnabledRef.current) {
             playGuestWinnerSong();
           }
           startContinuousCelebration();
@@ -224,11 +235,18 @@ export default function RouletteWheel({
       return;
     }
 
+    // ── GUARD: If already actively spinning, NEVER restart or reset startTimeRef! ──
+    if (isSpinActiveRef.current) {
+      return;
+    }
+
+    isSpinActiveRef.current = true;
+
     // ── INITIALIZE BRAND NEW 60-SECOND SPIN ──
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     spinCompletedRef.current = false;
     setIsRevealed(false);
-    setSecondsLeft(Math.max(1, Math.round(effectiveDuration / 1000)));
+    setSecondsLeft(60);
     setCountdownNum(null);
     setRevealStage(0);
     lastTickSecRef.current = null;
@@ -239,19 +257,20 @@ export default function RouletteWheel({
     resumeAudio();
     preloadGuestSounds();
 
-    if (soundEnabled) {
+    if (soundEnabledRef.current) {
       playSquidGameSound();
     }
 
     startTimeRef.current = Date.now();
 
+    const currentWinIdx = winIdx;
     // Natural wheel rotations (14 full spins + natural angle for winning pocket)
     const totalWheelSpins = 14 * 360;
-    const finalWheelTarget = totalWheelSpins + (winIdx * 43) % 360;
+    const finalWheelTarget = totalWheelSpins + (currentWinIdx * 43) % 360;
     targetAngleRef.current = finalWheelTarget;
 
     // The winning pocket's center angle relative to rotor
-    const pocketCenterAngle = (winIdx + 0.5) * segmentAngle;
+    const pocketCenterAngle = (currentWinIdx + 0.5) * segmentAngle;
     const finalPocketAngle = (finalWheelTarget + pocketCenterAngle) % 360;
 
     // ── NATURAL CONTINUOUS BALL TRAJECTORY (-32 full revolutions) ──
@@ -264,8 +283,8 @@ export default function RouletteWheel({
 
     const animate = () => {
       const elapsed = Date.now() - startTimeRef.current;
-      const progress = Math.min(1, elapsed / effectiveDuration);
-      const remainingSec = Math.max(0, Math.ceil((effectiveDuration - elapsed) / 1000));
+      const progress = Math.min(1, elapsed / 60000);
+      const remainingSec = Math.max(0, Math.ceil((60000 - elapsed) / 1000));
       setSecondsLeft(remainingSec);
 
       // Deceleration curve for the wheel: naturally slow down from fast to very slow
@@ -310,7 +329,7 @@ export default function RouletteWheel({
       setBallAngle(calculatedAngle);
 
       // Ball clatter sound only in first 45 seconds, silenced before countdown begins
-      if (soundEnabled && progress < 0.75 && elapsed - lastClickTime > (progress < 0.35 ? 130 : (progress < 0.55 ? 240 : 420))) {
+      if (soundEnabledRef.current && progress < 0.75 && elapsed - lastClickTime > (progress < 0.35 ? 130 : (progress < 0.55 ? 240 : 420))) {
         playRouletteBallClick();
         lastClickTime = elapsed;
       }
@@ -321,7 +340,7 @@ export default function RouletteWheel({
         if (!hasStartedBeepRef.current) {
           hasStartedBeepRef.current = true;
           stopSquidGameSound();
-          if (soundEnabled) {
+          if (soundEnabledRef.current) {
             playGuestCountdownBeep();
           }
         }
@@ -333,6 +352,7 @@ export default function RouletteWheel({
 
       // ── EXACTLY AT COUNTDOWN 0: STOP CLOCK, PLAY 3 EXPLOSIONS, START UNSTOPPABLE SONG & CONTINUOUS SPARKLES ──
       if (remainingSec === 0 || progress >= 1) {
+        isSpinActiveRef.current = false;
         stopSquidGameSound();
         stopGuestCountdownBeep();
 
@@ -353,11 +373,11 @@ export default function RouletteWheel({
           hasExplodedRef.current = true;
 
           // Play explosion sound 3 times continuously!
-          if (soundEnabled) {
+          if (soundEnabledRef.current) {
             playTripleWinnerExplosion();
             // Start unstoppable song right as the winner card reveals!
             setTimeout(() => {
-              if (soundEnabled) {
+              if (soundEnabledRef.current) {
                 playGuestWinnerSong();
               }
             }, 1200);
@@ -366,7 +386,7 @@ export default function RouletteWheel({
           // Trigger continuous luxury celebration sparkles!
           startContinuousCelebration();
 
-          if (onFinished) onFinished();
+          if (onFinishedRef.current) onFinishedRef.current();
         }
         return;
       }
@@ -382,8 +402,9 @@ export default function RouletteWheel({
       stopGuestCountdownBeep();
       stopGuestWinnerSong();
       stopContinuousCelebration();
+      isSpinActiveRef.current = false;
     };
-  }, [spinning, effectiveDuration, winIdx, segmentAngle, soundEnabled, onFinished]);
+  }, [spinning]);
 
   // Ensure full audio cleanup on component unmount (e.g. switching tabs away from guest zone)
   useEffect(() => {
