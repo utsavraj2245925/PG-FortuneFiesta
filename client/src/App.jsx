@@ -5,6 +5,7 @@ import AdminPanel from './pages/AdminPanel';
 import LiveDraw from './pages/LiveDraw';
 import GuestLive from './pages/GuestLive';
 import GuestAdmin from './pages/GuestAdmin';
+import ErrorBoundary from './components/ErrorBoundary';
 
 
 function PrivateRoute({ children }) {
@@ -32,13 +33,15 @@ export default function App() {
   }, []);
 
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/live" replace />} />
-      <Route path="/live" element={<LiveDraw />} />
-      <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/admin" element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
-      <Route path="/guest-live" element={<GuestLive />} />
-      <Route path="/admin/guests" element={<GuestAdmin />} /> 
-    </Routes>
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/" element={<Navigate to="/live" replace />} />
+        <Route path="/live" element={<LiveDraw />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin" element={<PrivateRoute><AdminPanel /></PrivateRoute>} />
+        <Route path="/guest-live" element={<GuestLive />} />
+        <Route path="/admin/guests" element={<GuestAdmin />} /> 
+      </Routes>
+    </ErrorBoundary>
   );
 }

@@ -138,6 +138,15 @@ export default function RouletteWheel({
   const hasExplodedRef = useRef(Boolean(winner));
   const targetAngleRef = useRef(0);
   const spinCompletedRef = useRef(false);
+  const isSpinActiveRef = useRef(false);
+  const spinStartTimeRef = useRef(0);
+  const onFinishedRef = useRef(onFinished);
+  onFinishedRef.current = onFinished;
+  const soundEnabledRef = useRef(soundEnabled);
+  soundEnabledRef.current = soundEnabled;
+  const centerRRef = useRef(150);
+  const pocketRadiusRef = useRef(110);
+  const winIdxRef = useRef(0);
 
   // Prepare roulette segments from guest list (minimum 20 for full casino rotor aesthetic)
   const segments = React.useMemo(() => {
@@ -159,6 +168,7 @@ export default function RouletteWheel({
     const idx = segments.findIndex(s => s.serialNo === winningSerialNo);
     return idx !== -1 ? idx : 0;
   }, [segments, winningSerialNo]);
+  winIdxRef.current = winIdx;
 
   // ── GRAND CASINO SIZE: Responsive calculation fitting any PC screen without vertical scrolling ──
   const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 800);
@@ -174,23 +184,8 @@ export default function RouletteWheel({
   const wheelSize = isWinnerRevealed ? Math.min(370, maxWheelAvail) : maxWheelAvail;
   const centerR = (wheelSize - 36) / 2;
   const pocketRadius = centerR * 0.74; // resting radius of ball in pocket
-
-  // Keep refs for physics inside requestAnimationFrame loop
-  const centerRRef = useRef(centerR);
-  const pocketRadiusRef = useRef(pocketRadius);
   centerRRef.current = centerR;
   pocketRadiusRef.current = pocketRadius;
-
-  const onFinishedRef = useRef(onFinished);
-  onFinishedRef.current = onFinished;
-
-  const soundEnabledRef = useRef(soundEnabled);
-  soundEnabledRef.current = soundEnabled;
-
-  const isSpinActiveRef = useRef(false);
-  const spinStartTimeRef = useRef(0);
-  const winIdxRef = useRef(winIdx);
-  winIdxRef.current = winIdx;
 
   useEffect(() => {
     if (!spinning) {

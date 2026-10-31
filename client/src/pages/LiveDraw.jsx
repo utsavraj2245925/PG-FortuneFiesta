@@ -28,6 +28,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Trophy, Crown, Gift, Sparkles, Award, Car, Clock, Star, Flame, Volume2, VolumeX } from 'lucide-react';
 import RouletteWheel from '../components/RouletteWheel';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 const LOGO_PG = 'https://cms-complaint-avidence.s3.eu-north-1.amazonaws.com/pg-logo-Photoroom.png';
 const LOGO_ONLY = 'https://cms-complaint-avidence.s3.eu-north-1.amazonaws.com/pg-logo-Photoroom+(1).png';
@@ -2812,25 +2813,27 @@ export default function LiveDraw() {
             </div>
 
             {/* Interactive Roulette Wheel Component (Guaranteed 60 Seconds Duration) */}
-            <RouletteWheel
-              spinning={guestSpinning}
-              guests={guestList}
-              winningSerialNo={guestSpinData?.winningSerialNo || pendingGuestWinnerRef.current?.serialNo || guestWinner?.serialNo}
-              winner={guestWinner || (guestSpinning ? null : pendingGuestWinnerRef.current)}
-              prize={guestPrize || (guestSpinning ? null : pendingGuestPrizeRef.current)}
-              duration={60000}
-              soundEnabled={soundEnabled}
-              onFinished={() => {
-                guestSpinningRef.current = false;
-                setGuestSpinning(false);
-                if (pendingGuestWinnerRef.current) {
-                  setGuestWinner(pendingGuestWinnerRef.current);
-                }
-                if (pendingGuestPrizeRef.current) {
-                  setGuestPrize(pendingGuestPrizeRef.current);
-                }
-              }}
-            />
+            <ErrorBoundary>
+              <RouletteWheel
+                spinning={guestSpinning}
+                guests={guestList}
+                winningSerialNo={guestSpinData?.winningSerialNo || pendingGuestWinnerRef.current?.serialNo || guestWinner?.serialNo}
+                winner={guestWinner || (guestSpinning ? null : pendingGuestWinnerRef.current)}
+                prize={guestPrize || (guestSpinning ? null : pendingGuestPrizeRef.current)}
+                duration={60000}
+                soundEnabled={soundEnabled}
+                onFinished={() => {
+                  guestSpinningRef.current = false;
+                  setGuestSpinning(false);
+                  if (pendingGuestWinnerRef.current) {
+                    setGuestWinner(pendingGuestWinnerRef.current);
+                  }
+                  if (pendingGuestPrizeRef.current) {
+                    setGuestPrize(pendingGuestPrizeRef.current);
+                  }
+                }}
+              />
+            </ErrorBoundary>
 
             {/* If waiting for spin */}
             {!guestSpinning && !guestWinner && (

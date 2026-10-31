@@ -2219,12 +2219,14 @@ export default function AdminPanel() {
 
   const spinGuest = async () => {
     startGuestCountdown(60);
+    setGuestState(prev => prev ? { ...prev, winner: null, status: 'spinning', spinning: true } : prev);
     try {
       await axios.post('/api/guests/spin', {}, auth());
       message.success('VIP Guest Roulette spinning for 60s on Live screen!');
     } catch (e) {
       message.error(e.response?.data?.message || 'Guest spin failed');
       stopGuestCountdown();
+      loadGuestState();
     }
   };
 
@@ -2829,7 +2831,6 @@ export default function AdminPanel() {
                         <Button
                           danger
                           size="large"
-                          loading={spinning || status === 'spinning'}
                           onClick={async () => {
                             startEmpCountdown(20);
                             try {
@@ -2842,15 +2843,18 @@ export default function AdminPanel() {
                               stopEmpCountdown();
                             }
                           }}
+                          icon={(spinning || status === 'spinning') ? <ReloadOutlined spin style={{ color: '#FFFFFF', verticalAlign: 'middle', marginRight: 4 }} /> : undefined}
                           style={{
                             whiteSpace: 'nowrap',
                             minWidth: isMobile ? '100%' : 140,
                             height: 46,
                             fontWeight: 900,
+                            backgroundColor: '#DC2626',
+                            borderColor: '#B91C1C',
                             color: '#FFFFFF',
-                            opacity: 1,
+                            opacity: '1 !important',
                             pointerEvents: (spinning || status === 'spinning') ? 'none' : 'auto',
-                            boxShadow: (spinning || status === 'spinning') ? '0 0 14px rgba(220,38,38,0.5)' : undefined,
+                            boxShadow: (spinning || status === 'spinning') ? '0 0 16px rgba(220,38,38,0.7)' : undefined,
                           }}
                         >
                           <span style={{ color: '#FFFFFF', fontWeight: 900, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}>
@@ -2867,21 +2871,20 @@ export default function AdminPanel() {
                       <Button
                         type="primary"
                         size="large"
-                        icon={spinning || status === 'spinning' ? undefined : <PlayCircleOutlined />}
-                        loading={spinning || status === 'spinning'}
+                        icon={(spinning || status === 'spinning') ? <ReloadOutlined spin style={{ color: '#FFFFFF', fontSize: 18, verticalAlign: 'middle' }} /> : <PlayCircleOutlined />}
                         onClick={spin}
                         disabled={currentRound > 9}
                         style={{
-                          backgroundColor: (spinning || status === 'spinning') ? '#B91C1C' : '#C8102E',
-                          borderColor: (spinning || status === 'spinning') ? '#991B1B' : '#C8102E',
+                          backgroundColor: '#C8102E',
+                          borderColor: '#991B1B',
                           color: '#FFFFFF',
-                          opacity: 1,
+                          opacity: '1 !important',
                           height: 50,
                           paddingInline: isMobile ? 16 : 28,
                           fontSize: 16,
                           fontWeight: 900,
                           flex: isMobile ? '1 1 auto' : undefined,
-                          boxShadow: (spinning || status === 'spinning') ? '0 0 16px rgba(220,38,38,0.6)' : '0 4px 14px rgba(200,16,46,0.3)',
+                          boxShadow: (spinning || status === 'spinning') ? '0 0 20px rgba(220,38,38,0.75)' : '0 4px 14px rgba(200,16,46,0.3)',
                           pointerEvents: (spinning || status === 'spinning') ? 'none' : 'auto',
                           transition: 'all 0.3s ease',
                         }}
@@ -2983,21 +2986,22 @@ export default function AdminPanel() {
                       <Button
                         type="primary"
                         size="large"
-                        loading={guestSpinning || guestState?.status === 'spinning'}
                         onClick={spinGuest}
                         disabled={(guestState?.eligibleCount || 0) === 0}
-                        icon={<Sparkles size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
+                        icon={(guestSpinning || guestState?.status === 'spinning')
+                          ? <ReloadOutlined spin style={{ color: '#FFFFFF', verticalAlign: 'middle', marginRight: 4 }} />
+                          : <Sparkles size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
                         style={{
-                          background: (guestSpinning || guestState?.status === 'spinning') ? '#581C87' : '#7B1FA2',
-                          borderColor: (guestSpinning || guestState?.status === 'spinning') ? '#3B0764' : '#7B1FA2',
+                          background: '#7B1FA2',
+                          borderColor: '#581C87',
                           color: '#FFFFFF',
-                          opacity: 1,
+                          opacity: '1 !important',
                           fontWeight: 900,
                           height: 48,
                           paddingInline: 20,
                           width: isMobile ? '100%' : 'auto',
                           pointerEvents: (guestSpinning || guestState?.status === 'spinning') ? 'none' : 'auto',
-                          boxShadow: (guestSpinning || guestState?.status === 'spinning') ? '0 0 16px rgba(123,31,162,0.6)' : undefined,
+                          boxShadow: (guestSpinning || guestState?.status === 'spinning') ? '0 0 20px rgba(123,31,162,0.75)' : undefined,
                           transition: 'all 0.3s ease',
                         }}
                       >
@@ -3019,8 +3023,8 @@ export default function AdminPanel() {
                   </Col>
                 </Row>
 
-                {/* Guest Winner Display & Revert Option */}
-                {guestState?.winner && (
+                {/* Guest Winner Display & Revert Option (Hidden during active 60s spinning to preserve suspense) */}
+                {!guestSpinning && guestState?.status !== 'spinning' && guestState?.winner && (
                   <div
                     style={{
                       background: 'linear-gradient(135deg, #fbf7ff 0%, #f3e8ff 100%)',
