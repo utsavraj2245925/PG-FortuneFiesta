@@ -2063,6 +2063,10 @@ export default function AdminPanel() {
   // Live real-time countdown for Guest roulette & Employee spin
   const [guestSecondsLeft, setGuestSecondsLeft] = useState(0);
   const guestCountdownIntervalRef = useRef(null);
+  const guestSpinningRef = useRef(false);
+  const guestSpinStartTimeRef = useRef(0);
+  const pendingGuestWinnerRef = useRef(null);
+  const pendingGuestPrizeRef = useRef(null);
 
   const [empSecondsLeft, setEmpSecondsLeft] = useState(0);
   const empCountdownIntervalRef = useRef(null);
@@ -2076,6 +2080,10 @@ export default function AdminPanel() {
 
   const startGuestCountdown = (initialSec = 60) => {
     if (guestCountdownIntervalRef.current) clearInterval(guestCountdownIntervalRef.current);
+    guestSpinningRef.current = true;
+    guestSpinStartTimeRef.current = Date.now();
+    pendingGuestWinnerRef.current = null;
+    pendingGuestPrizeRef.current = null;
     setGuestSpinning(true);
     setGuestSecondsLeft(initialSec);
     const startT = Date.now();
@@ -2087,8 +2095,20 @@ export default function AdminPanel() {
       if (remaining <= 0) {
         clearInterval(guestCountdownIntervalRef.current);
         guestCountdownIntervalRef.current = null;
+        guestSpinningRef.current = false;
         setGuestSpinning(false);
-        loadGuestState();
+        setGuestSecondsLeft(0);
+        if (pendingGuestWinnerRef.current) {
+          setGuestState(prev => ({
+            ...prev,
+            winner: pendingGuestWinnerRef.current,
+            prize: pendingGuestPrizeRef.current,
+            spinning: false,
+            status: 'revealed'
+          }));
+        } else {
+          loadGuestState();
+        }
       }
     }, 250);
   };
@@ -2098,6 +2118,8 @@ export default function AdminPanel() {
       clearInterval(guestCountdownIntervalRef.current);
       guestCountdownIntervalRef.current = null;
     }
+    guestSpinningRef.current = false;
+    guestSpinStartTimeRef.current = 0;
     setGuestSpinning(false);
     setGuestSecondsLeft(0);
   };
@@ -2155,25 +2177,46 @@ export default function AdminPanel() {
 
     // ── GUEST DRAW REAL-TIME SYNC ──
     'guest:spin_start': () => {
+      if (guestSpinningRef.current) return;
       startGuestCountdown(60);
       setGuestState(prev => prev ? { ...prev, winner: null, spinning: true, status: 'spinning' } : prev);
     },
     'guest:winner_revealed': (data) => {
+      const elapsed = Date.now() - guestSpinStartTimeRef.current;
+      // If currently spinning and less than 59s have elapsed, buffer the winner and DO NOT stop countdown early!
+      if (guestSpinningRef.current && elapsed < 59000) {
+        pendingGuestWinnerRef.current = data.winner;
+        pendingGuestPrizeRef.current = data.prize;
+        return;
+      }
       stopGuestCountdown();
       setGuestState(prev => prev ? { ...prev, winner: data.winner, prize: data.prize, spinning: false, status: 'revealed' } : prev);
     },
     'guest:reverted': () => {
       stopGuestCountdown();
+      pendingGuestWinnerRef.current = null;
+      pendingGuestPrizeRef.current = null;
       setGuestState(prev => prev ? { ...prev, winner: null, spinning: false, status: 'idle' } : prev);
       loadGuestState();
     },
     'guest:reset': () => {
       stopGuestCountdown();
+      pendingGuestWinnerRef.current = null;
+      pendingGuestPrizeRef.current = null;
       setGuestState(prev => prev ? { ...prev, winner: null, spinning: false, status: 'idle' } : prev);
       loadGuestState();
     },
     'guest:state': (st) => {
       if (st) {
+        const elapsed = Date.now() - guestSpinStartTimeRef.current;
+        // If 60s countdown is actively running on this device, buffer premature winner and NEVER cut off!
+        if (guestSpinningRef.current && elapsed < 59000) {
+          if (st.winner) {
+            pendingGuestWinnerRef.current = st.winner;
+            pendingGuestPrizeRef.current = st.prize;
+          }
+          return;
+        }
         setGuestState(st);
         if (st.spinning && !st.winner) {
           if (!guestCountdownIntervalRef.current) {
@@ -2206,8 +2249,16 @@ export default function AdminPanel() {
   const loadGuestState = useCallback(async () => {
     try {
       const res = await axios.get('/api/guests/state', auth());
+      const elapsed = Date.now() - guestSpinStartTimeRef.current;
+      // If 60s countdown is actively running on this device, buffer premature winner and DO NOT overwrite!
+      if (guestSpinningRef.current && elapsed < 59000) {
+        if (res.data?.winner) {
+          pendingGuestWinnerRef.current = res.data.winner;
+          pendingGuestPrizeRef.current = res.data.prize;
+        }
+        return;
+      }
       setGuestState(res.data);
-      // Keep spinning state intact during the full 60 seconds
       if (guestCountdownIntervalRef.current) return;
       if (res.data.spinning && !res.data.winner) {
         startGuestCountdown(60);
@@ -2948,14 +2999,14 @@ export default function AdminPanel() {
                     <Crown size={19} style={{ color: '#7B1FA2' }} />
                     <span style={{ fontWeight: 800, color: '#4A154B', fontSize: isMobile ? 14 : 16 }}>VIP Guest Playing Zone (Roulette)</span>
                     <Badge
-                      status={guestSpinning || guestState?.status === 'spinning' ? 'processing' : guestState?.winner ? 'success' : 'default'}
+                      status={guestSpinning ? 'processing' : guestState?.winner ? 'success' : 'default'}
                       text={
-                        <span style={{ fontWeight: 800, color: (guestSpinning || guestState?.status === 'spinning') ? '#7B1FA2' : (guestState?.winner ? '#52c41a' : '#64748b') }}>
-                          {guestSpinning || guestState?.status === 'spinning'
-                            ? `Spinning (${String(guestSecondsLeft || 60).padStart(2, '0')}s)...`
+                        <span style={{ fontWeight: 800, color: guestSpinning ? '#7B1FA2' : (guestState?.winner ? '#52c41a' : '#64748b') }}>
+                          {guestSpinning
+                            ? `Spinning (${String(guestSecondsLeft != null ? guestSecondsLeft : 60).padStart(2, '0')}s)...`
                             : guestState?.winner
                               ? 'Winner Drawn'
-                              : 'Ready'}
+                              : 'Ready to Spin'}
                         </span>
                       }
                     />
@@ -2988,7 +3039,7 @@ export default function AdminPanel() {
                         size="large"
                         onClick={spinGuest}
                         disabled={(guestState?.eligibleCount || 0) === 0}
-                        icon={(guestSpinning || guestState?.status === 'spinning')
+                        icon={guestSpinning
                           ? <ReloadOutlined spin style={{ color: '#FFFFFF', verticalAlign: 'middle', marginRight: 4 }} />
                           : <Sparkles size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
                         style={{
@@ -3000,14 +3051,14 @@ export default function AdminPanel() {
                           height: 48,
                           paddingInline: 20,
                           width: isMobile ? '100%' : 'auto',
-                          pointerEvents: (guestSpinning || guestState?.status === 'spinning') ? 'none' : 'auto',
-                          boxShadow: (guestSpinning || guestState?.status === 'spinning') ? '0 0 20px rgba(123,31,162,0.75)' : undefined,
+                          pointerEvents: guestSpinning ? 'none' : 'auto',
+                          boxShadow: guestSpinning ? '0 0 20px rgba(123,31,162,0.75)' : undefined,
                           transition: 'all 0.3s ease',
                         }}
                       >
                         <span style={{ color: '#FFFFFF', fontWeight: 900, textShadow: '0 1px 4px rgba(0,0,0,0.9)', letterSpacing: 0.5 }}>
-                          {guestSpinning || guestState?.status === 'spinning'
-                            ? `Spinning (${String(guestSecondsLeft || 60).padStart(2, '0')}s)...`
+                          {guestSpinning
+                            ? `Spinning (${String(guestSecondsLeft != null ? guestSecondsLeft : 60).padStart(2, '0')}s)...`
                             : 'SPIN Guest Roulette (60s)'}
                         </span>
                       </Button>
@@ -3024,7 +3075,7 @@ export default function AdminPanel() {
                 </Row>
 
                 {/* Guest Winner Display & Revert Option (Hidden during active 60s spinning to preserve suspense) */}
-                {!guestSpinning && guestState?.status !== 'spinning' && guestState?.winner && (
+                {!guestSpinning && guestState?.winner && (
                   <div
                     style={{
                       background: 'linear-gradient(135deg, #fbf7ff 0%, #f3e8ff 100%)',

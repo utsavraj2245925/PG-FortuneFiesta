@@ -89,6 +89,15 @@ module.exports = (io) => {
     }
   });
 
+  // GET /api/guests/version — deployment & duration verification
+  router.get('/version', (req, res) => {
+    res.json({
+      version: '2.1.0',
+      spinDuration: SPIN_DURATION,
+      time: new Date().toISOString(),
+    });
+  });
+
   // POST /api/guests/upload — upload CSV or XLSX/XLS
   router.post('/upload', auth, upload.single('file'), async (req, res) => {
     try {

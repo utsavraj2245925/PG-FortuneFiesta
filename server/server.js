@@ -34,6 +34,8 @@ app.get('/', (req, res) => {
     status: 'online',
     app: 'PG Fortune Fiesta API Server',
     database: mongoose.connection.readyState === 1 ? 'connected' : 'connecting',
+    version: '2.1.0',
+    guestSpinDuration: 60000,
     time: new Date().toISOString(),
   });
 });
