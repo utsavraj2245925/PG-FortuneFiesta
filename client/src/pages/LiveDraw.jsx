@@ -26,7 +26,7 @@ import {
   isEmpSongPending,
 } from '../hooks/useAudio';
 import confetti from 'canvas-confetti';
-import { Trophy, Crown, Gift, Sparkles, Award, Car, Clock, Star, Flame, Volume2, VolumeX } from 'lucide-react';
+import { Trophy, Crown, Gift, Sparkles, Award, Clock, Star, Flame, Volume2, VolumeX } from 'lucide-react';
 import RouletteWheel from '../components/RouletteWheel';
 import ErrorBoundary from '../components/ErrorBoundary';
 
@@ -2595,7 +2595,7 @@ export default function LiveDraw() {
                             boxShadow: '0 2px 8px rgba(74, 21, 75, 0.3)',
                           }}
                         >
-                          <Car size={16} />
+                          <Trophy size={16} />
                         </div>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 900, color: '#4A154B', letterSpacing: 0.5 }}>
