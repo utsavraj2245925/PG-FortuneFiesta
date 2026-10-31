@@ -3356,7 +3356,7 @@ export default function AdminPanel() {
                               letterSpacing: 0.5,
                             }}
                           >
-                            ★ VIP PASS ★
+                            ✦ GUEST FORTUNE FIESTA CARD ✦
                           </span>
                         </div>
 

@@ -114,14 +114,15 @@ LUCKY NUMBER: ${guest.serialNo || ''}`;
           </div>
           <div
             style={{
-              fontSize: 8 * scale,
+              fontSize: 8.5 * scale,
               color: '#475569',
-              fontWeight: 700,
+              fontWeight: 800,
               marginTop: 1 * scale,
-              letterSpacing: 0.5 * scale,
+              letterSpacing: 0.8 * scale,
+              textTransform: 'uppercase',
             }}
           >
-            ✦ Honored VIP Special Invitee ✦
+            HONOURED GUEST
           </div>
         </div>
 
@@ -183,30 +184,23 @@ LUCKY NUMBER: ${guest.serialNo || ''}`;
             justifyContent: 'center',
           }}
         >
-          {/* Prominent VIP PASS Badge directly above Name */}
-          <div style={{ marginBottom: 1 * scale, display: 'flex', alignItems: 'center' }}>
+          {/* GUEST FORTUNE FIESTA CARD (Golden color, no purple background) */}
+          <div style={{ marginBottom: 1.5 * scale, display: 'flex', alignItems: 'center' }}>
             <span
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                background: 'linear-gradient(135deg, #7B1FA2 0%, #4A148C 100%)',
-                color: '#FFD700',
+                color: '#B8860B',
                 fontWeight: 900,
-                fontSize: 9 * scale,
-                letterSpacing: 1.2 * scale,
-                paddingTop: `${0.8 * scale}px`,
-                paddingBottom: `${3.5 * scale}px`,
-                paddingLeft: `${8 * scale}px`,
-                paddingRight: `${8 * scale}px`,
-                borderRadius: 4 * scale,
+                fontSize: 8.5 * scale,
+                letterSpacing: 0.8 * scale,
                 textTransform: 'uppercase',
                 gap: 4 * scale,
-                boxShadow: (forDownload || print) ? 'none' : '0 2px 6px rgba(123, 31, 162, 0.3)',
-                lineHeight: 1,
+                lineHeight: 1.2,
+                textShadow: '0 0.5px 1px rgba(184, 134, 11, 0.25)',
               }}
             >
-              <span>★</span> VIP PASS <span>★</span>
+              <span>✦</span> GUEST FORTUNE FIESTA CARD <span>✦</span>
             </span>
           </div>
 
