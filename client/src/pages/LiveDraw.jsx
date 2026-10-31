@@ -488,12 +488,12 @@ function SlotDrum({ spinning, winnerCode, isForceLocked, sampleCodes, currentGro
               textTransform: 'uppercase',
             }}
           >
-            🎰 EMPLOYEE LUCKY DRAW REEL
+            🎰 EMPLOYEE LUCKY DRAW ROLLER
           </div>
         )}
       </div>
 
-      {/* Reel Labels: PREFIX and 6 DIGITS */}
+      {/* Roller Labels: PREFIX and 6 DIGITS */}
       <div
         style={{
           display: 'flex',
@@ -2121,7 +2121,7 @@ export default function LiveDraw() {
               gap: 6,
             }}
           >
-            <span>🎰 VIP Guest Roulette Zone</span>
+            <span>🎰 Guests Roulette Zone</span>
             {guestSpinning && (
               <span
                 style={{
@@ -2513,7 +2513,7 @@ export default function LiveDraw() {
                       marginBottom: 20,
                     }}
                   >
-                    ✨ Grand Annual Diwali Lucky Draw for Our Respected Employees & Honored Guests ✨
+                    ✨ Diwali Lucky Draw for Our Respected Employees & Honored Guests ✨
                   </div>
 
                   {/* 3 Executive Feature Cards */}
@@ -2565,7 +2565,7 @@ export default function LiveDraw() {
                         </div>
                       </div>
                       <div style={{ fontSize: 11.5, color: '#444', fontWeight: 600, lineHeight: 1.35, marginTop: 4 }}>
-                        Groups A, B & C • Bumper Festive Prizes & Shuffling Reels
+                        Groups A, B & C • Bumper Festive Prizes & Shuffling Rollers
                       </div>
                     </div>
 
@@ -2599,7 +2599,7 @@ export default function LiveDraw() {
                         </div>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 900, color: '#4A154B', letterSpacing: 0.5 }}>
-                            VIP GUEST ROULETTE
+                            GUESTS ROULETTE
                           </div>
                           <div style={{ fontSize: 10, fontWeight: 700, color: '#777' }}>
                             Special Honored Round
@@ -2607,7 +2607,7 @@ export default function LiveDraw() {
                         </div>
                       </div>
                       <div style={{ fontSize: 11.5, color: '#444', fontWeight: 600, lineHeight: 1.35, marginTop: 4 }}>
-                        Live 60s Casino Roulette • Dedicated Lucky Draw for Honored VIP Guests
+                        Live 60s Casino Roulette • Dedicated Lucky Draw for Honored Guests
                       </div>
                     </div>
 
@@ -2808,7 +2808,7 @@ export default function LiveDraw() {
                 🎰 GRAND CASINO ROULETTE WHEEL 🎰
               </h2>
               <div style={{ color: '#e0c3fc', fontSize: 13, fontWeight: 600, marginTop: 2, letterSpacing: 0.5 }}>
-                Special Honored VIP Guest Draw • Single Lucky Winner Round
+                Special Honored Guest Draw • Single Lucky Winner Round
               </div>
             </div>
 
@@ -2839,10 +2839,10 @@ export default function LiveDraw() {
             {!guestSpinning && !guestWinner && (
               <div style={{ textAlign: 'center', padding: '4px 0', flexShrink: 0 }}>
                 <div style={{ color: '#FFD700', fontSize: 15, fontWeight: 700 }}>
-                  ⏳ Ready — Waiting for Admin to Spin the VIP Guest Roulette Wheel
+                  ⏳ Ready — Waiting for Admin to Spin the Guest Roulette Wheel
                 </div>
                 <div style={{ color: '#e0c3fc', fontSize: 12, marginTop: 2 }}>
-                  {guestList.length} VIP Guests registered in the lucky draw pool.
+                  {guestList.length} Guests registered in the lucky draw pool.
                 </div>
               </div>
             )}

@@ -687,7 +687,7 @@ export default function RouletteWheel({
                 textShadow: '0 0 12px rgba(255,215,0,0.8)',
               }}
             >
-              👑 DESTINY HAS CHOSEN • LUCKY VIP SLOT #{winner.serialNo || winningSerialNo} 👑
+              👑 DESTINY HAS CHOOSEN • LUCKY No. #{winner.serialNo || winningSerialNo} 👑
             </motion.div>
           </div>
 
@@ -727,7 +727,7 @@ export default function RouletteWheel({
                 boxShadow: '0 2px 8px rgba(255,215,0,0.4)',
               }}
             >
-              👑 VIP GUEST LUCKY DRAW WINNER 👑
+              👑 GUEST HONORED DRAW WINNER 👑
             </motion.div>
 
             {/* Lucky Number (Reveals first) */}
@@ -925,7 +925,7 @@ export default function RouletteWheel({
                   textTransform: 'uppercase',
                 }}
               >
-                ✨ VIP GUEST HONORED DRAW • 1 LUCKY WINNER ROUND ✨
+                ✨ GUEST HONORED DRAW • 1 LUCKY WINNER ROUND ✨
               </div>
             )}
           </div>
