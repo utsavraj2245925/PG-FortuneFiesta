@@ -1040,7 +1040,7 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
         </motion.h1>
 
         <div style={{ fontSize: 'clamp(10px, 1.3vh, 12px)', color: '#fbcfe8', fontWeight: 700, letterSpacing: 0.8, marginTop: 1 }}>
-          ✨ Heartiest Congratulations to our Honored Guest Winner & Employee Champions! ✨
+          ✨ Heartiest Congratulations to our Guest Winner & Employee Champions! ✨
         </div>
       </div>
 
@@ -1115,7 +1115,7 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
                         boxShadow: '0 2px 8px rgba(255, 215, 0, 0.4)',
                       }}
                     >
-                      👑 HONORED GUEST WINNER
+                      👑 GUEST WINNER
                     </span>
                     <span
                       style={{
@@ -1196,7 +1196,7 @@ function FiestaWinnersDisplay({ prevWinners = [], guestWinner, guestPrize }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', justifyContent: 'center', padding: '6px 0' }}>
               <Crown size={22} style={{ color: '#FFD700' }} />
               <div style={{ color: '#FFD700', fontSize: 'clamp(12px, 1.6vh, 15px)', fontWeight: 800 }}>
-                Honored Guest Lucky Winner will be drawn live in the Casino Roulette Zone!
+                Guest Lucky Winner will be drawn live in the Casino Roulette Zone!
               </div>
             </div>
           )}
@@ -2602,12 +2602,12 @@ export default function LiveDraw() {
                             GUESTS ROULETTE
                           </div>
                           <div style={{ fontSize: 10, fontWeight: 700, color: '#777' }}>
-                            Special Honored Round
+                            Dedicated Guest Round
                           </div>
                         </div>
                       </div>
                       <div style={{ fontSize: 11.5, color: '#444', fontWeight: 600, lineHeight: 1.35, marginTop: 4 }}>
-                        Live 60s Casino Roulette • Dedicated Lucky Draw for Honored Guests
+                        Live 60s Casino Roulette • Dedicated Lucky Draw for Guests
                       </div>
                     </div>
 
@@ -2808,7 +2808,7 @@ export default function LiveDraw() {
                 🎰 GRAND CASINO ROULETTE WHEEL 🎰
               </h2>
               <div style={{ color: '#e0c3fc', fontSize: 13, fontWeight: 600, marginTop: 2, letterSpacing: 0.5 }}>
-                Special Honored Guest Draw • Single Lucky Winner Round
+                Guest Draw • Single Lucky Winner Round
               </div>
             </div>
 

@@ -727,7 +727,7 @@ export default function RouletteWheel({
                 boxShadow: '0 2px 8px rgba(255,215,0,0.4)',
               }}
             >
-              👑 GUEST HONORED DRAW WINNER 👑
+              👑 GUEST DRAW WINNER 👑
             </motion.div>
 
             {/* Lucky Number (Reveals first) */}
@@ -925,7 +925,7 @@ export default function RouletteWheel({
                   textTransform: 'uppercase',
                 }}
               >
-                ✨ GUEST HONORED DRAW • 1 LUCKY WINNER ROUND ✨
+                ✨ GUEST DRAW • 1 LUCKY WINNER ROUND ✨
               </div>
             )}
           </div>
